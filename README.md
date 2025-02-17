@@ -71,8 +71,9 @@ Feel free to **submit issues or pull requests** to improve the project.
 
 ## 📜 **References**
 - 🔗 **MITRE ATT&CK Framework**: [T1202 - Indirect Command Execution](https://attack.mitre.org/techniques/T1202/)  
-- 🔗 **DLL Injection Techniques**: [MalDev Academy](https://www.maldevacademy.com/)  
 - 🔗 **AV & EDR Detection**: [Exe_Who GitHub](https://github.com/Nariod/exe_who)
+- 🔗 **Pikabot Campaign TM**: [Trend Micro: Pikabot Spam Wave](https://www.trendmicro.com/en_us/research/24/a/a-look-into-pikabot-spam-wave-campaign.html)
+- 🔗 **Pikabot Campaign Mitre**: [MITRE ATT&CK: Pikabot Campaign (C0037)](https://attack.mitre.org/campaigns/C0037/)
 
 ---
 
