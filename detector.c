@@ -1,12 +1,4 @@
 #include "detector.h"
-#include <windows.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <tlhelp32.h>
-#include <time.h>
-#include <psapi.h>
-#include <wincrypt.h>
-#include <shlwapi.h>
 
 // Function to launch calc.exe (for evasion testing)
 void LaunchCalc() {
@@ -14,7 +6,7 @@ void LaunchCalc() {
     PROCESS_INFORMATION pi = { 0 };
     si.cb = sizeof(si);
 
-    if (CreateProcessA("C:\\Windows\\System32\\calc.exe", NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+    if (CreateProcessA("C:\\Windows\\System32\\calc.exe", NULL, NULL, NULL, false, 0, NULL, NULL, &si, &pi)) {
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
     }
@@ -183,8 +175,46 @@ bool DetectDLLs() {
     return false;
 }
 
+bool IsDebuggerPresentPEB() {
+    // Get Process Environment Block (PEB)
+    #ifdef _WIN64
+        PEB* peb = (PEB*)__readgsqword(0x60);
+        // NtGlobalFlag is at offset 0xBC in 64-bit PEB
+        DWORD NtGlobalFlag = *(DWORD*)((BYTE*)peb + 0xBC); 
+    #else // _WIN32
+        PEB* peb = (PEB*)__readfsdword(0x30);
+        // NtGlobalFlag is at offset 0x68 in 32-bit PEB
+        DWORD NtGlobalFlag = *(DWORD*)((BYTE*)peb + 0x68); 
+    #endif
+
+    // Check NtGlobalFlag
+    return NtGlobalFlag & (FLG_HEAP_ENABLE_TAIL_CHECK | FLG_HEAP_ENABLE_FREE_CHECK | FLG_HEAP_VALIDATE_PARAMETERS);
+}
+
+bool IsDebuggerPresentHeap() {
+    // Get Process Environment Block (PEB)
+    #ifdef _WIN64
+        PEB* peb = (PEB*)__readgsqword(0x60);
+        PVOID pHeapBase = (PVOID)(*(PDWORD_PTR)((PBYTE)peb + 0x30));
+        DWORD dwHeapFlagsOffset = 0x70; // 0x14 if Windows version inferior to Vista but who use old computers ? ;)
+        DWORD dwHeapForceFlagsOffset = 0x74; // 0x18 if Windows version inferior to Vista but who use old computers ? ;)
+    #else // _WIN32
+        PEB* peb = (PEB*)__readfsdword(0x30);
+        // Assuming no WOW64 processes for simplicity
+        PVOID pHeapBase = (PVOID)(*(PDWORD_PTR)((PBYTE)peb + 0x18)); 
+        DWORD dwHeapFlagsOffset = 0x40; // 0x0C if Windows version inferior to Vista but who use old computers ? ;)
+        DWORD dwHeapForceFlagsOffset = 0x44; // 0x10 if Windows version inferior to Vista but who use old computers ? ;)
+    #endif // _WIN64
+
+    DWORD dwHeapFlags = *(DWORD*)((PBYTE)pHeapBase + dwHeapFlagsOffset);
+    DWORD dwHeapForceFlags = *(DWORD*)((PBYTE)pHeapBase + dwHeapForceFlagsOffset);
+
+    // Check heap flags
+    return (dwHeapFlags & ~HEAP_GROWABLE) || (dwHeapForceFlags!= 0);
+}
+
 // Main Sandbox Detection Function
-bool CheckSandbox() {
+bool PerfomChecksEnv() {
     bool detected = false;
 
     printf("[*] Checking for EDRs...\n");
@@ -202,8 +232,14 @@ bool CheckSandbox() {
     printf("[*] Checking for dll...\n");
     detected |= DetectDLLs();
 
+    printf("[*] Checking for NtGlobalFlag...\n");
+    detected |= IsDebuggerPresentPEB();
+
+    printf("[*] Checking for Heap Flags...\n");
+    detected |= IsDebuggerPresentHeap();
+
     if (detected) {
-        printf("[!] Sandbox or EDR detected, terminating execution.\n");
+        printf("[!] Env unsafe, terminating execution.\n");
     } else {
         printf("[*] No sandbox detected.\n");
     }
