@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
     
     //If no DLL given, abort.
     if (argc != 2) {
-        LaunchCalc();
+        SortNumbers();
         return 0;
     }
 

@@ -9,7 +9,7 @@
 #define FLG_HEAP_VALIDATE_PARAMETERS 0x40
 
 // Function to launch calc.exe (for testing sandbox evasion)
-void LaunchCalc();
+void SortNumbers();
 
 // Main function to check all sandbox evasion techniques
 bool PerfomChecksEnv();

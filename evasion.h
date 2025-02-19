@@ -4,6 +4,8 @@
 #include <windows.h>
 #include <stdbool.h>
 
+#define ARRAY_SIZE 1000
+
 DWORD GetSyid(LPCSTR functionName);
 
 extern DWORD smID;

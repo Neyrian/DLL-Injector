@@ -11,18 +11,6 @@
 // Dynamic API Resolution
 BOOL(WINAPI *pPathFileExistsA)(LPCSTR) = NULL;
 
-// Function to launch calc.exe (for evasion testing)
-void LaunchCalc() {
-    STARTUPINFOA si = { 0 };
-    PROCESS_INFORMATION pi = { 0 };
-    si.cb = sizeof(si);
-
-    if (CreateProcessA("C:\\Windows\\System32\\calc.exe", NULL, NULL, NULL, false, 0, NULL, NULL, &si, &pi)) {
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
-    }
-}
-
 // EDR Detection: Scan system driver directory for known EDR drivers
 bool DetS() {
     const char* edrDrivers[] = {
@@ -42,7 +30,7 @@ bool DetS() {
         for (int i = 0; i < sizeof(edrDrivers) / sizeof(edrDrivers[0]); i++) {
             if (StrStrIA(findFileData.cFileName, edrDrivers[i])) {
                 printf("[!] Detected EDR: %s\n", edrDrivers[i]);
-                LaunchCalc();
+                SortNumbers();
                 return true;
             }
         }
@@ -65,7 +53,7 @@ bool DetSl() {
 
     if (elapsedMs < 9000.0 || elapsedMs > 11000.0) {
         printf("[!] Sleep timing anomaly detected: %f ms\n", elapsedMs);
-        LaunchCalc();
+        SortNumbers();
         return true;
     }
     return false;
@@ -106,7 +94,7 @@ bool DetSBF() {
 
         if (pPathFileExistsA(decodedPath)) {
             printf("[!] Sandbox file detected!\n");
-            LaunchCalc(); // Evasion: Execute decoy application
+            SortNumbers();
             free(decodedPath);
             return true;
         }
@@ -154,7 +142,7 @@ bool DetF() {
 
     if (_stricmp(fileName, hashStr) == 0) {
         printf("[!] File name matches MD5 hash (possible packed execution)\n");
-        LaunchCalc();
+        SortNumbers();
         return true;
     }
     return false;
@@ -186,7 +174,7 @@ bool DetSBD() {
         char* decodedPath = Bsfd(encoded_realDLLs[i]);
         HMODULE lib_inst = LoadLibraryA(decodedPath);
         if (lib_inst == NULL) {
-            LaunchCalc();
+            SortNumbers();
             printf("Checks : %s\n", decodedPath);
             free(decodedPath);
             return true;
@@ -199,7 +187,7 @@ bool DetSBD() {
         char* decodedPath = Bsfd(encoded_sandboxDLLs[i]);
         HMODULE lib_inst = GetModuleHandleA(decodedPath);
         if (lib_inst != NULL) {
-            LaunchCalc();
+            SortNumbers();
             printf("Checks : %s\n", decodedPath);
             free(decodedPath);
             return true;
