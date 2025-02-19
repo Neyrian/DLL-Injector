@@ -1,26 +1,19 @@
 section .data
-    global wSystemCall
-    wSystemCall dq 0
+    global smID
+    smID dq 0
 
 section .text
-global myNtAllocateVirtualMemory
-global myNtWriteVirtualMemory
-global myNtProtectVirtualMemory
+global custAVM
+global custWVM
 
-myNtAllocateVirtualMemory:
+custAVM:
     mov r10, rcx
-    mov rax, [rel wSystemCall] ; Load the value of wSystemCall into RAX
+    mov rax, [rel smID] ; Load the value of smID into RAX
     syscall
     ret
 
-myNtWriteVirtualMemory:
+custWVM:
     mov r10, rcx          ; Move ProcessHandle to R10
-    mov rax, [rel wSystemCall] ; Load the value of wSystemCall into RAX
-    syscall               ; Execute the system call
-    ret                   ; Return to caller
-
-myNtProtectVirtualMemory:
-    mov r10, rcx          ; Move ProcessHandle to R10
-    mov rax, [rel wSystemCall] ; Load the value of wSystemCall into RAX
+    mov rax, [rel smID] ; Load the value of smID into RAX
     syscall               ; Execute the system call
     ret                   ; Return to caller

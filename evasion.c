@@ -114,8 +114,6 @@ PVOID GetModuleBaseAddress(LPCWSTR moduleName) {
     return NULL;
 }
 
-
-
 DWORD GetSyscallNumber(LPCSTR functionName) {
     PVOID ntdllBase = GetModuleBaseAddress(L"ntdll.dll");
     if (!ntdllBase) return 0;
@@ -141,115 +139,5 @@ DWORD GetSyscallNumber(LPCSTR functionName) {
 }
 
 void SetSystemCall(DWORD value) {
-    wSystemCall = value;
+    smID = value;
 }
-
-// NTSTATUS HellGate_NtAllocateVirtualMemory(
-//     HANDLE hProcess,
-//     PVOID *BaseAddress,
-//     ULONG ZeroBits,
-//     PSIZE_T RegionSize,
-//     ULONG AllocationType,
-//     ULONG Protect
-// ) {
-//     DWORD syscallId = GetSyscallNumber("NtAllocateVirtualMemory");
-//     printf("Syscall ID: 0x%llx\n", (unsigned long long)syscallId);
-//     if (!syscallId) return -1;
-
-//     if (hProcess == NULL || hProcess == INVALID_HANDLE_VALUE) {
-//         printf("[!] Invalid process handle!\n");
-//         return -1;
-//     }
-
-//     ULONG64 status; // Adjust type for compatibility with assembly
-
-//     // printf("Syscall ID: 0x%lx\n", syscallId);
-//     // printf("Parameters:\n");
-//     // printf("  hProcess: %p\n", hProcess);
-//     // printf("  BaseAddress: %p\n", BaseAddress);
-//     // printf("  *BaseAddress: %p\n", *BaseAddress);
-//     // printf("  ZeroBits: %lu\n", ZeroBits);
-//     // printf("  RegionSize: %p\n", RegionSize);
-//     // printf("  *RegionSize: %llu\n", *RegionSize);
-//     // printf("  AllocationType: %lu\n", AllocationType);
-//     // printf("  Protect: %lu\n", Protect);
-
-//     PVOID tempBase = *BaseAddress;  // Store BaseAddress in a temporary variable
-
-//     printf("[*] BEFORE SYSCALL:\n  BaseAddress: %p\n  RegionSize: %llu\n", *BaseAddress, *RegionSize);
-    
-//     __asm__ __volatile__ ( 
-//         "mov %%r10, %%rcx;"    // Move RCX (hProcess) to R10 as per syscall convention
-//         "mov %%eax, %1;"       // Move syscall number into EAX
-//         "syscall;"             // Execute syscall
-//         "mov %0, %%rax;"       // Store return status
-//         "mov %2, %%rdx;"       // Store allocated memory address in tempBase
-//         : "=r" (status), "=r" (tempBase)   // Outputs: status and new BaseAddress
-//         : "r" ((unsigned long long)syscallId), // Input: syscall ID
-//           "D" ((unsigned long long)hProcess), // RCX → First parameter
-//           "S" ((unsigned long long)BaseAddress), // RDX → Second parameter (address)
-//           "d" ((unsigned long long)ZeroBits), // R8  → Third parameter
-//           "r" ((unsigned long long)*RegionSize), // R9  → Fourth parameter (size value, not pointer)
-//           "r" ((unsigned long long)AllocationType), // Fifth parameter
-//           "r" ((unsigned long long)Protect) // Sixth parameter
-//         : "rax", "rcx", "r10", "memory"    // Clobbered registers
-//     );
-
-//     *BaseAddress = tempBase;  // Update original pointer
-//     printf("[*] AFTER SYSCALL:\n  BaseAddress: %p\n  RegionSize: %llu\n", *BaseAddress, *RegionSize);
-    
-
-//     // __asm__ __volatile__ (
-//     //     "mov %[syscallId], %%rax\n"        // Load syscall number into RAX
-//     //     "mov %[hProcess], %%rcx\n"         // Move hProcess to RCX
-//     //     "mov %[baseAddress], %%rdx\n"      // Move BaseAddress to RDX
-//     //     "mov %[zeroBits], %%r8\n"          // Move ZeroBits to R8
-//     //     "mov %[regionSize], %%r9\n"        // Move RegionSize to R9
-//     //     "mov %[allocationType], %%r10\n"   // Move AllocationType to R10
-//     //     "mov %[protect], %%r11\n"          // Move Protect to R11
-//     //     "syscall\n"                        // Execute syscall
-//     //     "mov %%rax, %[status]\n"           // Store result in status
-//     //   : [status] "=r" (status)             // Output operand (status)
-//     //   : [syscallId] "r" ((unsigned long long)syscallId), // Input operand 1 (syscall number)
-//     //     [hProcess] "r" ((unsigned long long)hProcess),  // Input operand 2 (hProcess)
-//     //     [baseAddress] "r" ((unsigned long long)baseAddress), // Input operand 3 (BaseAddress)
-//     //     [zeroBits] "r" ((unsigned long long)ZeroBits),  // Input operand 4 (ZeroBits)
-//     //     [regionSize] "r" ((unsigned long long)regionSize), // Input operand 5 (RegionSize)
-//     //     [allocationType] "r" ((unsigned long long)AllocationType), // Input operand 6 (AllocationType)
-//     //     [protect] "r" ((unsigned long long)Protect)    // Input operand 7 (Protect)
-//     //   : "rax", "rcx", "rdx", "r8", "r9", "r10", "r11", "memory"  // Clobbered registers
-//     // );
-//     return (NTSTATUS)status;
-
-//     // HMODULE hNtdll = GetModuleHandleW(L"ntdll.dll");
-//     // if (!hNtdll) {
-//     //     printf("Failed to get handle for ntdll.dll\n");
-//     //     return -1;
-//     // }
-
-//     // pfnNtAllocateVirtualMemory NtAllocateVirtualMemory = (pfnNtAllocateVirtualMemory)GetProcAddress(hNtdll, "NtAllocateVirtualMemory");
-//     // if (!NtAllocateVirtualMemory) {
-//     //     printf("Failed to get address for NtAllocateVirtualMemory\n");
-//     //     return -1;
-//     // }
-
-//     // printf("Parameters:\n");
-//     // printf("  hProcess: %p\n", hProcess);
-//     // printf("  BaseAddress: %p\n", BaseAddress);
-//     // printf("  *BaseAddress: %p\n", *BaseAddress);
-//     // printf("  ZeroBits: %lu\n", ZeroBits);
-//     // printf("  RegionSize: %p\n", RegionSize);
-//     // printf("  *RegionSize: %llu\n", *RegionSize);
-//     // printf("  AllocationType: %lu\n", AllocationType);
-//     // printf("  Protect: %lu\n", Protect);
-
-//     // NTSTATUS status = NtAllocateVirtualMemory(
-//     //     hProcess,
-//     //     BaseAddress,
-//     //     ZeroBits,
-//     //     RegionSize,
-//     //     AllocationType,
-//     //     Protect
-//     // );
-//     return status;
-// }

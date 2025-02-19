@@ -6,31 +6,9 @@
 #include <stdio.h>
 #include <winternl.h>
 
-// #ifndef _PEB_DEFINED
-// typedef struct _PEB {
-//     BOOLEAN InheritedAddressSpace;
-//     BOOLEAN ReadImageFileExecOptions;
-//     BOOLEAN BeingDebugged;
-//     BOOLEAN SpareBool;
-//     HANDLE Mutant;
-//     PVOID ImageBaseAddress;
-//     PPEB_LDR_DATA Ldr;
-// } PEB, *PPEB;
-// #define _PEB_DEFINED
-// #endif
-
-typedef NTSTATUS (NTAPI *pfnNtAllocateVirtualMemory)(
-    HANDLE ProcessHandle,
-    PVOID *BaseAddress,
-    ULONG ZeroBits,
-    PSIZE_T RegionSize,
-    ULONG AllocationType,
-    ULONG Protect
-);
-
 DWORD GetSyscallNumber(LPCSTR functionName);
 
-extern NTSTATUS myNtAllocateVirtualMemory(
+extern NTSTATUS custAVM(
     HANDLE hProcess,
     PVOID *BaseAddress,
     ULONG ZeroBits,
@@ -39,7 +17,7 @@ extern NTSTATUS myNtAllocateVirtualMemory(
     ULONG Protect
 );
 
-extern NTSTATUS myNtWriteVirtualMemory(
+extern NTSTATUS custWVM(
     HANDLE hProcess,
     PVOID BaseAddress,
     PVOID Buffer,
@@ -47,15 +25,7 @@ extern NTSTATUS myNtWriteVirtualMemory(
     PSIZE_T NumberOfBytesWritten
 );
 
-extern NTSTATUS myNtProtectVirtualMemory(
-    HANDLE hProcess,
-    PVOID *BaseAddress,
-    PSIZE_T RegionSize,
-    ULONG NewProtect,
-    PULONG OldProtect
-);
-
-extern DWORD wSystemCall;
+extern DWORD smID;
 
 void SetSystemCall(DWORD value);
 
@@ -68,15 +38,5 @@ void SetSystemCall(DWORD value);
 bool IsNtDllHooked();
 
 void UnhookNtdll();
-
-// // Function prototypes for Hell's Gate
-// NTSTATUS HellGate_NtAllocateVirtualMemory(
-//     HANDLE hProcess,
-//     PVOID *BaseAddress,
-//     ULONG ZeroBits,
-//     PSIZE_T RegionSize,
-//     ULONG AllocationType,
-//     ULONG Protect
-// );
 
 #endif // EVASION_H
