@@ -1,4 +1,9 @@
 #include "evasion.h"
+#include <wincrypt.h>
+#include <shlwapi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <winternl.h>
 
 PVOID GetModuleBaseAddress(LPCWSTR moduleName) {
     PPEB pPeb = (PPEB)__readgsqword(0x60); // 0x60 is PEB offset for x64
@@ -45,4 +50,50 @@ DWORD GetSyid(LPCSTR functionName) {
 
 void SetSyid(DWORD value) {
     smID = value;
+}
+
+// Function to Resolve APIs
+FARPROC ResolveFn(LPCSTR mod, LPCSTR fn) {
+    HMODULE hMod = GetModuleHandle(mod);
+    if (!hMod) return NULL;
+
+    IMAGE_DOS_HEADER* dosHdr = (IMAGE_DOS_HEADER*)hMod;
+    IMAGE_NT_HEADERS* ntHdr = (IMAGE_NT_HEADERS*)((BYTE*)hMod + dosHdr->e_lfanew);
+    IMAGE_EXPORT_DIRECTORY* expDir = (IMAGE_EXPORT_DIRECTORY*)((BYTE*)hMod + ntHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+
+    DWORD* names = (DWORD*)((BYTE*)hMod + expDir->AddressOfNames);
+    WORD* ords = (WORD*)((BYTE*)hMod + expDir->AddressOfNameOrdinals);
+    DWORD* funcs = (DWORD*)((BYTE*)hMod + expDir->AddressOfFunctions);
+
+    for (DWORD i = 0; i < expDir->NumberOfNames; i++) {
+        LPCSTR currFn = (LPCSTR)((BYTE*)hMod + names[i]);
+        if (strcmp(currFn, fn) == 0) {
+            return (FARPROC)((BYTE*)hMod + funcs[ords[i]]);
+        }
+    }
+    return NULL;
+}
+
+// Function to Base64 Decode
+char* base64Decode(const char* encoded) {
+    DWORD outLen = 0;
+    BYTE* decoded = NULL;
+    
+    // Get the required output buffer size
+    if (!CryptStringToBinaryA(encoded, 0, CRYPT_STRING_BASE64, NULL, &outLen, NULL, NULL)) {
+        return NULL;
+    }
+
+    // Allocate buffer
+    decoded = (BYTE*)malloc(outLen + 1);
+    if (!decoded) return NULL;
+
+    // Perform the decoding
+    if (!CryptStringToBinaryA(encoded, 0, CRYPT_STRING_BASE64, decoded, &outLen, NULL, NULL)) {
+        free(decoded);
+        return NULL;
+    }
+
+    decoded[outLen] = '\0';  // Null-terminate the string
+    return (char*)decoded;
 }

