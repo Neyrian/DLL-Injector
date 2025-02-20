@@ -35,7 +35,6 @@ void SortNumbers() {
     printf("[*] Processed %d numbers. Average value: %.2f\n", ARRAY_SIZE, avg);
 }
 
-
 //GetModuleBaseAddress
 PVOID GetModBA(LPCWSTR moduleName) {
     PPEB pPeb = (PPEB)__readgsqword(0x60); // 0x60 is PEB offset for x64
@@ -84,28 +83,6 @@ void SetSyid(DWORD value) {
     smID = value;
 }
 
-// Function to Resolve APIs
-FARPROC ResolveFn(LPCSTR mod, LPCSTR fn) {
-    HMODULE hMod = GetModuleHandle(mod);
-    if (!hMod) return NULL;
-
-    IMAGE_DOS_HEADER* dosHdr = (IMAGE_DOS_HEADER*)hMod;
-    IMAGE_NT_HEADERS* ntHdr = (IMAGE_NT_HEADERS*)((BYTE*)hMod + dosHdr->e_lfanew);
-    IMAGE_EXPORT_DIRECTORY* expDir = (IMAGE_EXPORT_DIRECTORY*)((BYTE*)hMod + ntHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
-
-    DWORD* names = (DWORD*)((BYTE*)hMod + expDir->AddressOfNames);
-    WORD* ords = (WORD*)((BYTE*)hMod + expDir->AddressOfNameOrdinals);
-    DWORD* funcs = (DWORD*)((BYTE*)hMod + expDir->AddressOfFunctions);
-
-    for (DWORD i = 0; i < expDir->NumberOfNames; i++) {
-        LPCSTR currFn = (LPCSTR)((BYTE*)hMod + names[i]);
-        if (strcmp(currFn, fn) == 0) {
-            return (FARPROC)((BYTE*)hMod + funcs[ords[i]]);
-        }
-    }
-    return NULL;
-}
-
 // Function to Base64 Decode
 char* Bsfd(const char* encoded) {
     DWORD outLen = 0;
@@ -128,4 +105,77 @@ char* Bsfd(const char* encoded) {
 
     decoded[outLen] = '\0';  // Null-terminate the string
     return (char*)decoded;
+}
+
+pMod GetMod(LPCSTR mod, LPCSTR fn) {
+    PPEB pPEB = (PPEB)__readgsqword(0x60);
+    if (!pPEB) {
+        printf("[!] Failed to retrieve PEB.\n");
+        return NULL;
+    }
+
+    PPEB_LDR_DATA pLdr = pPEB->Ldr;
+    if (!pLdr) {
+        printf("[!] Failed to retrieve LDR data.\n");
+        return NULL;
+    }
+
+    LIST_ENTRY* pListHead = &pLdr->InMemoryOrderModuleList;
+    LIST_ENTRY* pEntry = pListHead->Flink;
+
+    while (pEntry != pListHead) {
+        PLDR_DATA_TABLE_ENTRY pDataTable = CONTAINING_RECORD(pEntry, LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks);
+        if (!pDataTable->DllBase) {
+            pEntry = pEntry->Flink;
+            continue;
+        }
+
+        // Get DLL base address
+        HMODULE hModuleBase = (HMODULE)pDataTable->DllBase;
+        WCHAR wDllName[MAX_PATH] = { 0 };
+        memcpy(wDllName, pDataTable->FullDllName.Buffer, pDataTable->FullDllName.Length);
+
+        // Convert to ANSI string
+        char dllName[MAX_PATH] = { 0 };
+        wcstombs(dllName, wDllName, MAX_PATH);
+
+        // Normalize the name (convert to lowercase)
+        for (int i = 0; dllName[i]; i++) {
+            dllName[i] = tolower(dllName[i]);
+        }
+
+        if (strstr(dllName, mod)) {
+            printf("[*] Found %s at: %p\n", mod, hModuleBase);
+
+            // Locate Export Directory
+            IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*)hModuleBase;
+            IMAGE_NT_HEADERS* ntHeaders = (IMAGE_NT_HEADERS*)((BYTE*)hModuleBase + dosHeader->e_lfanew);
+            IMAGE_EXPORT_DIRECTORY* expDir = (IMAGE_EXPORT_DIRECTORY*)((BYTE*)hModuleBase + ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+
+            if (!expDir) {
+                printf("[!] Export directory not found!\n");
+                return NULL;
+            }
+
+            DWORD* names = (DWORD*)((BYTE*)hModuleBase + expDir->AddressOfNames);
+            WORD* ordinals = (WORD*)((BYTE*)hModuleBase + expDir->AddressOfNameOrdinals);
+            DWORD* functions = (DWORD*)((BYTE*)hModuleBase + expDir->AddressOfFunctions);
+
+            for (DWORD i = 0; i < expDir->NumberOfNames; i++) {
+                LPCSTR functionName = (LPCSTR)((BYTE*)hModuleBase + names[i]);
+                if (strcmp(functionName, fn) == 0) {
+                    printf("[*] %s found at: %p\n", fn, (BYTE*)hModuleBase + functions[ordinals[i]]);
+                    return (pMod)((BYTE*)hModuleBase + functions[ordinals[i]]);
+                }
+            }
+
+            printf("[!] %s not found in %s exports.\n", fn, mod);
+            return NULL;
+        }
+
+        pEntry = pEntry->Flink;
+    }
+
+    printf("[!] %s not found in PEB.\n", mod);
+    return NULL;
 }

