@@ -8,10 +8,15 @@ This project implements a **stealthy DLL injector** for **Windows** with advance
 ## 📌 **Features**
 
 ✅ **Stealthy Injection:** Creates a suspended process and injects a DLL without using common Windows API calls.
+
 ✅ **EDR/AV/Sandbox Evasion:** Implements multiple checks to detect sandbox environments, VM detection, and EDR hooks.
+
 ✅ **Direct Syscalls:** Uses Hell's Gate & SysWhispers to bypass API hooks in `ntdll.dll`.
+
 ✅ **Avoid calling GetModuleHandle:** Uses `PEB walk` to retrieve functions in modules.
+
 ✅ **Obfuscation:** Base64 encoding and decoding of DLL names, function names, and suspicious artifacts.
+
 ✅ **Decoy Execution:** The injector executes a decoy function to mimic legitimate software behavior.
 
 ---
@@ -79,6 +84,7 @@ injector.exe C:\path\to\dll
 ### **3️⃣ evasion.c & evasion.h - Evasion Functions & Decoy Execution**
 - Implements **Base64 encoding & decoding** to hide DLL and function names.
 - **Legitimate Decoy Execution**: The injector executes a CPU-intensive function to simulate legitimate software behavior.
+- Use PEB walk to retrieve function in modules without API.
 
 ### **4️⃣ syscalls.asm - Direct Syscalls for Hell’s Gate & SysWhispers**
 - Implements **NtAllocateVirtualMemory, NtWriteVirtualMemory, NtProtectVirtualMemory** using direct syscalls.
