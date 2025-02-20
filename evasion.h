@@ -8,6 +8,11 @@
 
 // Function definition for modules.
 typedef HMODULE(WINAPI* pMod)(LPCSTR);
+typedef FARPROC(WINAPI* pModC)(HMODULE, LPCSTR);
+typedef HANDLE(WINAPI* pCreateFileA_t)(LPCSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
+typedef DWORD(WINAPI* pGetFileSize_t)(HANDLE, LPDWORD);
+typedef BOOL(WINAPI* pReadFile_t)(HANDLE, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
+typedef BOOL(WINAPI* pCloseHandle_t)(HANDLE);
 
 /*
 Store the syscall id for external assembly functions.
@@ -43,8 +48,12 @@ It looks like legitimate processing activity without raising suspicion.
 void SortNumbers();
 
 /*
-Function to retrieve Function in Module using a stealthy PEB walk.
-This doesn't rely on GetModuleHandle.
+The GetMod function is a stealthy Windows API resolver that locates a function within a specific module without using GetModuleHandle or GetProcAddress. 
+Instead, it manually traverses the Process Environment Block (PEB) to extract module and export function addresses.
+1 - Access the Process Environment Block (PEB)
+2 - Iterate Through the PEB Loader Data (LDR)
+3 - Locate the Export Address Table (EAT)
+4 - Return the Function Address
 */ 
 pMod GetMod(LPCSTR mod, LPCSTR fn);
 

