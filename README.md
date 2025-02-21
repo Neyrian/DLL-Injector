@@ -17,6 +17,8 @@ This project implements a **stealthy DLL injector** for **Windows** with advance
 
 ✅ **Obfuscation:** Base64 encoding and decoding of DLL names, function names, and suspicious artifacts.
 
+✅ **Cryptography:** Implements its own cryptography functions, avoiding the usage of wincrypt
+
 ✅ **Decoy Execution:** The injector executes a decoy function to mimic legitimate software behavior.
 
 ---
@@ -25,7 +27,7 @@ This project implements a **stealthy DLL injector** for **Windows** with advance
 ### **1️⃣ Compilation**
 ```bash
 nasm -f win64 syscalls.asm -o syscalls.o
-x86_64-w64-mingw32-gcc -o injector.exe dllinjector.c detector.h detector.c evasion.c evasion.h syscalls.o -Wno-array-bounds -Wall -lshlwapi -lcrypt32 -Wl,--image-base,0x140000000 -O2
+x86_64-w64-mingw32-gcc -o injector.exe dllinjector.c detector.h detector.c evasion.c evasion.h syscalls.o -Wno-array-bounds -Wall -lshlwapi -Wl,--image-base,0x140000000 -O2
 x86_64-w64-mingw32-strip injector.exe
 ```
 
