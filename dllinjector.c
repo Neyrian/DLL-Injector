@@ -1,5 +1,4 @@
 #include <windows.h>
-#include <psapi.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include "detector.h"

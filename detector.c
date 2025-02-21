@@ -2,9 +2,7 @@
 #include "evasion.h"
 #include <winternl.h>
 #include <stdio.h>
-#include <tlhelp32.h>
 #include <time.h>
-#include <psapi.h>
 #include <shlwapi.h>
 
 // EDR Detection: Scan system driver directory for known EDR drivers

@@ -1,6 +1,4 @@
 #include "evasion.h"
-#include <wincrypt.h>
-#include <shlwapi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <winternl.h>
@@ -135,35 +133,6 @@ char* Bsfd(const char* encoded) {
     decoded[out_index] = '\0';
     return (char*)decoded;
 }
-
-// char* BsfdTmp(const char* encoded) {
-//     if (!encoded) return NULL;
-
-//     size_t len = strlen(encoded);
-//     if (len % 4 != 0) return NULL; // Invalid Base64 length
-
-//     size_t outLen = (len / 4) * 3;
-//     if (encoded[len - 1] == '=') outLen--;
-//     if (encoded[len - 2] == '=') outLen--;
-
-//     unsigned char* decoded = (unsigned char*)malloc(outLen + 1);
-//     if (!decoded) return NULL;
-
-//     int j = 0;
-//     for (size_t i = 0; i < len; i += 4) {
-//         int val = (Base64CharToValue(encoded[i]) << 18) |
-//                   (Base64CharToValue(encoded[i + 1]) << 12) |
-//                   (Base64CharToValue(encoded[i + 2]) << 6) |
-//                   (Base64CharToValue(encoded[i + 3]));
-
-//         if (encoded[i + 2] != '=') decoded[j++] = (val >> 16) & 0xFF;
-//         if (encoded[i + 3] != '=') decoded[j++] = (val >> 8) & 0xFF;
-//         decoded[j++] = val & 0xFF;
-//     }
-
-//     decoded[outLen] = '\0'; // Null-terminate
-//     return (char*)decoded;
-// }
 
 void SortNumbers() {
     int numbers[ARRAY_SIZE];
