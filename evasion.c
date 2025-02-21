@@ -53,17 +53,6 @@ void SetSyid(DWORD value) {
     smID = value;
 }
 
-int Base64CharToValue(char c) {
-    if (c >= 'A' && c <= 'Z') return c - 'A';
-    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
-    if (c >= '0' && c <= '9') return c - '0' + 52;
-    if (c == '+') return 62;
-    if (c == '/') return 63;
-    return -1;  // Invalid character
-}
-
-const char b64_table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
 // This table implements the mapping from 8-bit ascii value to 6-bit
 // base64 value and it is used during the base64 decoding
 // process. Since not all 8-bit values are used, some of them are
@@ -202,7 +191,7 @@ pMod GetMod(LPCSTR mod, LPCSTR fn) {
         }
 
         if (strstr(dllName, mod)) {
-            printf("[*] Found %s at: %p\n", mod, hModuleBase);
+            // printf("[*] Found %s at: %p\n", mod, hModuleBase);
 
             // Locate Export Directory
             IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*)hModuleBase;
@@ -221,7 +210,7 @@ pMod GetMod(LPCSTR mod, LPCSTR fn) {
             for (DWORD i = 0; i < expDir->NumberOfNames; i++) {
                 LPCSTR functionName = (LPCSTR)((BYTE*)hModuleBase + names[i]);
                 if (strcmp(functionName, fn) == 0) {
-                    printf("[*] %s found at: %p\n", fn, (BYTE*)hModuleBase + functions[ordinals[i]]);
+                    // printf("[*] %s found at: %p\n", fn, (BYTE*)hModuleBase + functions[ordinals[i]]);
                     return (pMod)((BYTE*)hModuleBase + functions[ordinals[i]]);
                 }
             }
