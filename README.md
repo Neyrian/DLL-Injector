@@ -27,8 +27,7 @@ This project implements a **stealthy DLL injector** for **Windows** with advance
 ### **1️⃣ Compilation**
 ```bash
 nasm -f win64 syscalls.asm -o syscalls.o
-x86_64-w64-mingw32-gcc -o injector.exe dllinjector.c detector.h detector.c evasion.c evasion.h syscalls.o -Wno-array-bounds -Wall -lshlwapi -Wl,--image-base,0x140000000 -O2
-x86_64-w64-mingw32-strip injector.exe
+x86_64-w64-mingw32-gcc -o injector.exe dllinjector.c detector.h detector.c evasion.c evasion.h syscalls.o -Wno-array-bounds -Wall -lshlwapi -Wl,--section-alignment,4096 -Wl,--gc-sections -Wl,--strip-debug -Wl,--image-base,0x140000000 -O2
 ```
 
 ### **2️⃣ Running the Injector**
