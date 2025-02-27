@@ -1,7 +1,7 @@
 # 🚀 Advanced DLL Injector with EDR/AV/Sandbox Evasion
 
 ## 🔥 Overview
-This project implements a **stealthy DLL injector** for **Windows** with advanced evasion techniques. It includes mechanisms to **bypass EDR, AV, and sandbox detections** while using direct syscalls and obfuscation to reduce detection rates. The injector creates a suspended process, injects a DLL, and executes its entry point in a stealthy manner.
+This project implements a **stealthy DLL injector** for **Windows 10** with advanced evasion techniques. It includes mechanisms to **bypass EDR, AV, and sandbox detections** while using direct syscalls and obfuscation to reduce detection rates. The injector creates a suspended process, injects a DLL, and executes its entry point in a stealthy manner.
 
 ---
 
@@ -92,6 +92,13 @@ injector.exe C:\path\to\dll
 ### **4️⃣ syscalls.asm - Direct Syscalls for Hell’s Gate & SysWhispers**
 - Implements **NtAllocateVirtualMemory, NtWriteVirtualMemory, NtProtectVirtualMemory** using direct syscalls.
 - Dynamically resolves syscall numbers at runtime to avoid static detection.
+
+---
+
+## **Test**
+
+- [x] Windows 10 (22H2)
+- [ ] Windows 11 (11 24H2)
 
 ---
 
