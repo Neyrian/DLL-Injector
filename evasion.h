@@ -14,7 +14,6 @@ typedef DWORD(WINAPI *pGetFileSize_t)(HANDLE, LPDWORD);
 typedef BOOL(WINAPI *pReadFile_t)(HANDLE, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
 typedef BOOL(WINAPI *pCloseHandle_t)(HANDLE);
 
-
 /*
 Headers of assembly functions for direct syscalls.
 Inspired by Hells Gate methods.

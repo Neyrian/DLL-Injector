@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <winternl.h>
 
-
 // This table implements the mapping from 8-bit ascii value to 6-bit
 // base64 value and it is used during the base64 decoding
 // process. Since not all 8-bit values are used, some of them are
