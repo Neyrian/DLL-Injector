@@ -14,21 +14,6 @@ typedef DWORD(WINAPI *pGetFileSize_t)(HANDLE, LPDWORD);
 typedef BOOL(WINAPI *pReadFile_t)(HANDLE, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
 typedef BOOL(WINAPI *pCloseHandle_t)(HANDLE);
 
-/*
-Store the syscall id for external assembly functions.
-See syscalls.asm.
-*/
-extern DWORD smID;
-
-/*
-Retrieve syscall id.
-*/
-DWORD GetSyid(LPCSTR functionName);
-
-/*
-Set the syscall id.
-*/
-void SetSyid(DWORD value);
 
 /*
 Headers of assembly functions for direct syscalls.
