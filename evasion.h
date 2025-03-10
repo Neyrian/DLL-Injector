@@ -3,16 +3,22 @@
 
 #include <windows.h>
 #include <stdbool.h>
+#include <stdarg.h>
+
+#define DEBUG true // or false
+typedef enum {
+    DEBUG_ERROR,
+    DEBUG_INFO,
+    DEBUG_SUCCESS
+} DEBUG_TYPE;
+
+void myDebug(DEBUG_TYPE type, const char *format, ...);
 
 #define ARRAY_SIZE 1000
 
 // Function definition for modules.
 typedef HMODULE(WINAPI *pMod)(LPCSTR);
 typedef FARPROC(WINAPI *pModC)(HMODULE, LPCSTR);
-typedef HANDLE(WINAPI *pCreateFileA_t)(LPCSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
-typedef DWORD(WINAPI *pGetFileSize_t)(HANDLE, LPDWORD);
-typedef BOOL(WINAPI *pReadFile_t)(HANDLE, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
-typedef BOOL(WINAPI *pCloseHandle_t)(HANDLE);
 
 /*
 Headers of assembly functions for direct syscalls.

