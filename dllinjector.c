@@ -55,7 +55,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
     }
 
     // Load Remote DLL
-    hThreadRemote = CreateRemoteThreadEx(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL, NULL);
+    hThreadRemote = CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
     if (!hThreadRemote)
     {
         myDebug(DEBUG_ERROR, "Thread creation failed. Err: %lu", GetLastError());
