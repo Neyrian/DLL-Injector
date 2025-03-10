@@ -64,7 +64,7 @@ BOOL QueueAPCInjection(HANDLE hProcess, LPVOID remoteDllPath, LPTHREAD_START_ROU
 }
 
 // Core Injection Logic
-void StealthExec(HANDLE hProc, const char *dllN)
+bool StealthExec(HANDLE hProc, const char *dllN)
 {
     PVOID memLoc = NULL;
     SIZE_T sz = strlen(dllN) + 1;
@@ -77,7 +77,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
     if (!pLLoad)
     {
         printf("[!] Failed to resolve LoadLibraryA.\n");
-        return;
+        return false;
     }
     else
     {
@@ -88,13 +88,13 @@ void StealthExec(HANDLE hProc, const char *dllN)
     if (status != 0)
     {
         printf("[!] NtAllocateVirtualMemory failed! Status: 0x%lX\n", status);
-        return;
+        return false;
     }
 
     if (memLoc == NULL)
     {
         printf("[!] Memory allocation failed, BaseAddress is NULL.\n");
-        return;
+        return false;
     }
     else
     {
@@ -106,7 +106,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
     if (status != 0)
     {
         printf("[!] Memory write failed (Err: 0x%lX).\n", status);
-        return;
+        return false;
     }
     else
     {
@@ -122,38 +122,40 @@ void StealthExec(HANDLE hProc, const char *dllN)
         if (!QueueAPCInjection(hProc, memLoc, (LPTHREAD_START_ROUTINE)pLLoad))
         {
             printf("[!] APC Injection failed.\n");
+            return false;
         }
         else
         {
             printf("[*] Successfully injected via APC!\n");
+            return true;
         }
-        return;
     }
     else
     {
-        printf("[*] Thread creation succeed. Waiting for thread to resume\n");
-        DWORD waitResult = WaitForSingleObject(hThreadRemote, 10000); // Wait for 10 seconds
+        printf("[*] Thread creation succeed. Waiting 5 sec for thread to resume.\n");
+        DWORD waitResult = WaitForSingleObject(hThreadRemote, 5000); // Wait for 5 seconds
         if ((waitResult == WAIT_TIMEOUT) || (waitResult == WAIT_FAILED))
         {
             printf("[!] WaitForSingleObject failed! Error: %lu\n", GetLastError());
-            CloseHandle(hThreadRemote);
             TerminateThread(hThreadRemote, 0); // Kill stuck thread
+            CloseHandle(hThreadRemote);
             printf("[*] Injecting using APC Queue\n");
             if (!QueueAPCInjection(hProc, memLoc, (LPTHREAD_START_ROUTINE)pLLoad))
             {
                 printf("[!] APC Injection failed.\n");
+                return false;
             }
             else
             {
                 printf("[*] Successfully injected via APC!\n");
+                return true;
             }
-            return;
         }
         ResumeThread(hThreadRemote);
         CloseHandle(hThreadRemote);
         printf("[*] Successfully injected module via RemoteThread\n");
     }
-    return;
+    return true;
 }
 
 // Entry Function
@@ -195,7 +197,9 @@ int main(int argc, char *argv[])
     StealthExec(pInfo.hProcess, dllPath);
 
     // Resume Execution
+    ResumeThread(pInfo.hThread);
     CloseHandle(pInfo.hProcess);
+    CloseHandle(pInfo.hThread);
     printf("[*] %s is now running.\n", procName);
 
     return 0;
