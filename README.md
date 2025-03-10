@@ -1,7 +1,7 @@
 # 🚀 Advanced DLL Injector with EDR/AV/Sandbox Evasion
 
 ## 🔥 Overview
-This project implements a **stealthy DLL injector** for **Windows 10** with advanced evasion techniques. It includes mechanisms to **bypass EDR, AV, and sandbox detections** while using direct syscalls and obfuscation to reduce detection rates. The injector creates a suspended process, injects a DLL, and executes its entry point in a stealthy manner.
+This project implements a **stealthy DLL injector** for **Windows 10 and 11** with advanced evasion techniques. It includes mechanisms to **bypass EDR, AV, and sandbox detections** while using direct syscalls and obfuscation to reduce detection rates. The injector creates a suspended process, injects a DLL, and executes its entry point in a stealthy manner.
 
 ---
 
@@ -30,13 +30,14 @@ nasm -f win64 syscalls.asm -o syscalls.o
 x86_64-w64-mingw32-gcc -o injector.exe dllinjector.c detector.h detector.c evasion.c evasion.h syscalls.o -Wno-array-bounds -Wall -lshlwapi -Wl,--section-alignment,4096 -Wl,--gc-sections -Wl,--strip-debug -Wl,--image-base,0x140000000 -O2
 x86_64-w64-mingw32-objcopy --rename-section .CRT=.data injector.exe
 x86_64-w64-mingw32-strip --strip-debug --strip-unneeded injector.exe
+x86_64-w64-mingw32-gcc -shared -o malDLL.dll malDLL.c -Wl,--subsystem,windows -mwindows
 ```
 
 ### **2️⃣ Running the Injector**
 ```powershell
 injector.exe C:\path\to\dll
 ```
-> **Note**: Replace `C:\path\to\dll` with the actual path of your DLL.
+> **Note**: Replace `C:\path\to\dll` with the actual path of your DLL (you can use the dll in this repo for testing)
 ---
 
 ## 🐍 **EDR, AV, and Sandbox Evasion**
@@ -98,7 +99,7 @@ injector.exe C:\path\to\dll
 ## **Test**
 
 - [x] Windows 10 (22H2)
-- [ ] Windows 11 (11 24H2)
+- [x] Windows 11 (11 24H2)
 
 ---
 
