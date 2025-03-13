@@ -54,7 +54,20 @@ void StealthExec(HANDLE hProc, const char *dllN)
         myDebug(DEBUG_SUCCESS, "Successfully write memory.");
     }
 
+    // pMod pCRT = GetMod("kernel32.dll", "CreateRemoteThread");
+
+    // if (!pCRT)
+    // {
+    //     myDebug(DEBUG_ERROR, "Failed to resolve CreateRemoteThread.");
+    //     return;
+    // }
+    // else
+    // {
+    //     myDebug(DEBUG_SUCCESS, "Successfully resolve CreateRemoteThread.");
+    // }
+
     // Load Remote DLL
+    //hThreadRemote = ((pCRT_t)pCRT)(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
     hThreadRemote = CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
     if (!hThreadRemote)
     {
