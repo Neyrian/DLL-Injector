@@ -69,6 +69,7 @@ injector.exe C:\path\to\dll
 │── detector.h       # Header file for detection functions
 │── evasion.c        # Evasion functions (syscalls, b64decode...) and decoy
 │── evasion.h        # Header file for evasion functions and decoy
+|── malDLL.c         # Source DLL that can be used for testing
 │── syscalls.asm     # Direct Syscalls Functions
 │── README.md        # Documentation
 ```
