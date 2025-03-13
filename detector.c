@@ -144,9 +144,10 @@ bool DetF()
     pCreateFileA_t pCreateFileA = (pCreateFileA_t)pGetProcAddress(hKernel32, Bsfd("Q3JlYXRlRmlsZUE=")); // CreateFileA
     pGetFileSize_t pGetFileSize = (pGetFileSize_t)pGetProcAddress(hKernel32, Bsfd("R2V0RmlsZVNpemU=")); // GetFileSize
     pReadFile_t pReadFile = (pReadFile_t)pGetProcAddress(hKernel32, Bsfd("UmVhZEZpbGU=")); // ReadFile
+    pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(Bsfd("a2VybmVsMzIuZGxs"), "CloseHandle");
 
     // Ensure all function pointers are valid
-    if (!pGetModuleFileNameA || !pCreateFileA || !pGetFileSize || !pReadFile)
+    if (!pGetModuleFileNameA || !pCreateFileA || !pGetFileSize || !pReadFile  || !pCloseHandle)
         return false;
 
     // Retrieve executable path stealthily
@@ -169,7 +170,7 @@ bool DetF()
     pReadFile(hFile, buffer, min(fileSize, sizeof(buffer)), &bytesRead, NULL);
 
     // Close file handle
-    CloseHandle(hFile);
+    pCloseHandle(hFile);
 
     // Implement custom XOR-based hashing instead of using Crypt APIs
     BYTE hash[16] = {0};
