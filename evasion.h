@@ -6,7 +6,8 @@
 #include <stdarg.h>
 
 #define DEBUG true // or false
-typedef enum {
+typedef enum
+{
     DEBUG_ERROR,
     DEBUG_INFO,
     DEBUG_SUCCESS
@@ -19,6 +20,8 @@ void myDebug(DEBUG_TYPE type, const char *format, ...);
 // Function definition for modules.
 typedef HMODULE(WINAPI *pMod)(LPCSTR);
 typedef FARPROC(WINAPI *pModC)(HMODULE, LPCSTR);
+typedef HANDLE(WINAPI *pCRT_t)(HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD);
+typedef BOOL(WINAPI *pCPA_t)(LPCSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCSTR, LPSTARTUPINFOA, LPPROCESS_INFORMATION);
 
 /*
 Headers of assembly functions for direct syscalls.
