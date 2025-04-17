@@ -25,8 +25,13 @@ This project implements a **stealthy DLL injector** for **Windows 10 and 11** wi
 
 ## 🚀 **Usage**
 ### **1️⃣ Compilation**
-
-Use makefile or manual compilation below
+```info
+Requirements:
+  - gcc-mingw-w64-x86-64-win32
+  - nasm
+  - make
+```
+Use **makefile** or manual compilation below
 
 ```bash
 nasm -f win64 syscalls.asm -o syscalls.o
