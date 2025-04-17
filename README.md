@@ -25,6 +25,9 @@ This project implements a **stealthy DLL injector** for **Windows 10 and 11** wi
 
 ## 🚀 **Usage**
 ### **1️⃣ Compilation**
+
+Use makefile or manual compilation below
+
 ```bash
 nasm -f win64 syscalls.asm -o syscalls.o
 x86_64-w64-mingw32-gcc -o injector.exe dllinjector.c detector.h detector.c evasion.c evasion.h syscalls.o -Wno-array-bounds -Wall -lshlwapi -Wl,--section-alignment,4096 -Wl,--gc-sections -Wl,--strip-debug -Wl,--image-base,0x140000000 -O2
@@ -64,14 +67,15 @@ injector.exe C:\path\to\dll
 ## 📝 **Project Structure**
 ```
 📂 Project Folder
-│── injector.c       # Main DLL injector
 │── detector.c       # EDR/AV/Sandbox detection
 │── detector.h       # Header file for detection functions
+│── dllinjector.c    # Main DLL injector
 │── evasion.c        # Evasion functions (syscalls, b64decode...) and decoy
 │── evasion.h        # Header file for evasion functions and decoy
+|── makefile         # easy to compile
 |── malDLL.c         # Source DLL that can be used for testing
+│── README.md        # This documentation
 │── syscalls.asm     # Direct Syscalls Functions
-│── README.md        # Documentation
 ```
 ---
 ## Modules Breakdown
