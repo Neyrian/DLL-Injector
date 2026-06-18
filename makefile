@@ -42,6 +42,8 @@ $(TARGET_EXE): $(C_OBJS) $(ASM_OBJ) obfuscator
 	$(OBJCOPY) --rename-section .CRT=.data $(TARGET_EXE)
 	$(STRIP) --strip-debug --strip-unneeded $(TARGET_EXE)
 	./obfuscator $(TARGET_EXE) $(TARGET_OBFS_EXE) 144
+	@echo "Recalculating PE CheckSum..."
+	python3 fix_checksum.py $(TARGET_OBFS_EXE)
 	rm -f $(ASM_OBJ) $(C_OBJS) $(OBFUSCATOR)
 
 # Build the malicious DLL
