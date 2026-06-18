@@ -158,7 +158,7 @@ pMod GetMod(LPCSTR mod, LPCSTR fn)
                 LPCSTR functionName = (LPCSTR)((BYTE *)hModuleBase + names[i]);
                 if (strcmp(functionName, fn) == 0)
                 {
-                    myDebug(DEBUG_INFO, "%s found at: %p", fn, (BYTE*)hModuleBase + functions[ordinals[i]]);
+                    // myDebug(DEBUG_INFO, "%s found at: %p", fn, (BYTE*)hModuleBase + functions[ordinals[i]]);
                     return (pMod)((BYTE *)hModuleBase + functions[ordinals[i]]);
                 }
             }

