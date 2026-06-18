@@ -42,6 +42,7 @@ $(TARGET_EXE): $(C_OBJS) $(ASM_OBJ) obfuscator
 	$(OBJCOPY) --rename-section .CRT=.data $(TARGET_EXE)
 	$(STRIP) --strip-debug --strip-unneeded $(TARGET_EXE)
 	./obfuscator $(TARGET_EXE) $(TARGET_OBFS_EXE) 144
+	rm -f $(ASM_OBJ) $(C_OBJS) $(OBFUSCATOR)
 
 # Build the malicious DLL
 $(TARGET_DLL): $(DLL_SRC)

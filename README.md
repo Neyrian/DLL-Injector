@@ -15,9 +15,7 @@ This project implements a **stealthy DLL injector** for **Windows 10 and 11** wi
 
 ✅ **Avoid calling GetModuleHandle:** Uses `PEB walk` to retrieve functions in modules.
 
-✅ **Obfuscation:** Base64 encoding and decoding of DLL names, function names, and suspicious artifacts.
-
-✅ **Cryptography:** Implements its own cryptography functions, avoiding the usage of wincrypt
+✅ **Obfuscation:** NEW: Rather than plain string Base64 encoding, suspicious artifacts are obfuscated after the binary is build. Thanks to [4g3nt47's Obfuscator](https://github.com/4g3nt47/Obfuscator.git).
 
 ✅ **Decoy Execution:** The injector executes a decoy function to mimic legitimate software behavior.
 
@@ -31,21 +29,16 @@ Requirements:
   - nasm
   - make
 ```
-Use **makefile** or manual compilation below
-
-```bash
-nasm -f win64 syscalls.asm -o syscalls.o
-x86_64-w64-mingw32-gcc -o injector.exe dllinjector.c detector.h detector.c evasion.c evasion.h syscalls.o -Wno-array-bounds -Wall -lshlwapi -Wl,--section-alignment,4096 -Wl,--gc-sections -Wl,--strip-debug -Wl,--image-base,0x140000000 -O2
-x86_64-w64-mingw32-objcopy --rename-section .CRT=.data injector.exe
-x86_64-w64-mingw32-strip --strip-debug --strip-unneeded injector.exe
-x86_64-w64-mingw32-gcc -shared -o malDLL.dll malDLL.c -Wl,--subsystem,windows -mwindows
-```
+Use **makefile** or compile it your ways (don't forget to use the obfuscator :) )
 
 ### **2️⃣ Running the Injector**
 ```powershell
-injector.exe C:\path\to\dll
+obfsinjector.exe C:\path\to\dll
 ```
-> **Note**: Replace `C:\path\to\dll` with the actual path of your DLL (you can use the dll in this repo for testing)
+> **Note**: 
+> - Use the obfsinjector executable. Otherwise, the build binary (injector.exe) won't work since the strings won't be obfuscated.
+> - Replace `C:\path\to\dll` with the actual path of your DLL (you can use the dll in this repo for testing)
+> - It's recommanded to disable debugging (set to ```false``` the ```DEBUG``` variable in ```evasion.h```. If you do, the program may appear unresponsive. It's due to various waiting time. Just wait 15 sec 😊 )
 ---
 
 ## 🐍 **EDR, AV, and Sandbox Evasion**
@@ -72,43 +65,51 @@ injector.exe C:\path\to\dll
 ## 📝 **Project Structure**
 ```
 📂 Project Folder
-│── detector.c       # EDR/AV/Sandbox detection
-│── detector.h       # Header file for detection functions
-│── dllinjector.c    # Main DLL injector
-│── evasion.c        # Evasion functions (syscalls, b64decode...) and decoy
-│── evasion.h        # Header file for evasion functions and decoy
-|── makefile         # easy to compile
-|── malDLL.c         # Source DLL that can be used for testing
-│── README.md        # This documentation
-│── syscalls.asm     # Direct Syscalls Functions
+│── dllinjector.c         # Main DLL injector
+│── detector.c            # EDR/AV/Sandbox detection
+│── evasion.c             # Evasion functions (syscalls, b64decode...) and decoy
+|── malDLL.c              # Source DLL that can be used for testing
+│── binary_obfuscator.c   # Contains the obfuscator's functions
+│── obfuscator.c          # Main program used to obfuscate the build binary
+│── detector.h            # Header file for detection functions
+│── evasion.h             # Header file for evasion functions and decoy
+│── binary_obfuscator.h   # Contains the obfuscator's definition
+│── syscalls.asm          # Direct Syscalls Functions
+|── makefile              # easy to compile
+│── README.md             # This documentation
 ```
 ---
 ## Modules Breakdown
-### **1️⃣ dllinjector.c - Main DLL Injector**
+### **Main DLL Injector: dllinjector.c**
 - Creates a **suspended** process (`SearchProtocolHost.exe` or `explorer.exe`).
 - Uses **direct syscalls** to allocate memory and write the DLL path.
 - Executes the entry point of the injected DLL stealthily.
 
-### **2️⃣ detector.c & detector.h - EDR/AV/Sandbox Detection**
+### **EDR/AV/Sandbox Detection: detector.c & detector.h**
 - Detects **common AV/EDR drivers** in `C:\Windows\System32\drivers`.
 - Checks for **sandbox-specific DLLs** like `cuckoomon.dll`, `VBox*.dll`, etc.
 - Uses `NtQuerySystemInformation` to determine if the environment is a VM.
 - Implements **cursor movement & sleep patching** to evade automated sandboxes.
 
-### **3️⃣ evasion.c & evasion.h - Evasion Functions & Decoy Execution**
+### **Evasion Functions & Decoy Execution: evasion.c & evasion.h**
 - Implements **Base64 encoding & decoding** to hide DLL and function names.
 - **Legitimate Decoy Execution**: The injector executes a CPU-intensive function to simulate legitimate software behavior.
 - Use PEB walk to retrieve function in modules without API.
 
-### **4️⃣ syscalls.asm - Direct Syscalls for Hell’s Gate & SysWhispers**
-- Implements **NtAllocateVirtualMemory, NtWriteVirtualMemory, NtProtectVirtualMemory** using direct syscalls.
+### **Direct Syscalls: syscalls.asm**
+- Implements **NtAllocateVirtualMemory, NtWriteVirtualMemory** using direct syscalls.
 
+### **Obfuscator**
+- Not my work, please ref to [Obfuscator](https://github.com/4g3nt47/Obfuscator.git).
+
+> TL;DR: The Obfuscator is compiled and the built binary is passed to the obfuscator. Then each string in the binary that start with a unique string ([OBFS_ENC]) is then encoded one byte at a time by XORing it with a key that is continously adjusted.
 ---
 
 ## **Test**
 
 - [x] Windows 10 (22H2)
 - [x] Windows 11 (11 24H2)
+- [x] Windows Server 2025 (24H2)
 
 ---
 
@@ -126,7 +127,7 @@ Feel free to **submit issues or pull requests** to improve the project.
 ## 📜 **References**
 - 🔗 **MITRE ATT&CK Framework**: [T1202 - Indirect Command Execution](https://attack.mitre.org/techniques/T1202/)  
 - 🔗 **AV & EDR Detection**: [Exe_Who GitHub](https://github.com/Nariod/exe_who)
-
+- 🔗 **Binary Obfuscation**: [Obfuscator](https://github.com/4g3nt47/Obfuscator.git)
 ---
 
 🚀 **Happy Hacking!**

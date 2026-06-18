@@ -40,13 +40,19 @@ typedef BOOL(WINAPI *pResumeThread_t)(HANDLE);
 /*
 Headers of assembly functions for direct syscalls.
 See definitions in syscalls.asm.
+CustAVM: NtAllocateVirtualMemory
+CustWVM: NtWriteVirtualMemory
 */
-extern NTSTATUS CustAVM(HANDLE hProcess, PVOID *BaseAddress, ULONG ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect);
+extern NTSTATUS CustAVM(HANDLE hProcess, PVOID *BaseAddress, ULONG ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect); 
 extern NTSTATUS CustWVM(HANDLE hProcess, PVOID BaseAddress, PVOID Buffer, SIZE_T BufferSize, PSIZE_T NumberOfBytesWritten);
 
 /**
- * TODO
-*/
+ *--------------------------------------------------------------------------------------
+ *      Obfuscator - A library for obfuscating strings in a program.
+ *      Adapted from https://github.com/4g3nt47/Obfuscator
+ *                                                                    Author: Umar Abdul
+ *--------------------------------------------------------------------------------------
+ */
 char *obfs_decode(unsigned char key, char str[]);
 
 /* Decoy function
