@@ -112,15 +112,9 @@ void obfs_run(FILE *dest, FILE *src, unsigned char key, short int verbose){
     char *buff = malloc(target_len); // This also includes the length of the marker, which we will fill with nulls.
     memset(buff, 0, target_len);
     fread(buff, 1, org_str_len, src);
-    if (verbose)
-      printf("[*] Obfuscating strings %s of size %ld\t", buff, strlen(buff));
     obfs_encode(key, buff);
-    if (verbose)
-      printf("-> Obfuscated strings of size %ld\n", strlen(buff));
     fwrite(buff, 1, target_len, dest); // Write the encoded string with marker removed.
     free(buff);
-    // if (verbose)
-    //   printf("[+] Offset 0x%08lx. %ld bytes, new size %ld...\n", offset, org_str_len,target_len);
   }
 
   end:
