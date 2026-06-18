@@ -1,7 +1,10 @@
 # 🚀 Advanced DLL Injector with EDR/AV/Sandbox Evasion
 
 ## 🔥 Overview
-This project implements a **stealthy DLL injector** for **Windows 10 and 11** with advanced evasion techniques. It includes mechanisms to **bypass EDR, AV, and sandbox detections** while using direct syscalls and obfuscation to reduce detection rates. The injector creates a suspended process, injects a DLL, and executes its entry point in a stealthy manner.
+This project implements a **stealthy DLL injector** for **Windows 10 and 11** with advanced evasion techniques. It includes mechanisms to **bypass EDR, AV, and sandbox detections** while using direct syscalls, manual API resolution, PEB walk, and obfuscation to reduce detection rates. The injector creates a suspended process, injects a DLL, and executes its entry point in a stealthy manner.
+
+- 0/69 on [VirusTotal](https://www.virustotal.com/gui/file/21a1b9a16ac78b0b898dac1866b4871b0bd26d6287a731b913711db3c78e555e)
+- Not detected on [Hybrid Analysis Sandbox](https://hybrid-analysis.com/sample/21a1b9a16ac78b0b898dac1866b4871b0bd26d6287a731b913711db3c78e555e)
 
 ---
 
@@ -11,9 +14,9 @@ This project implements a **stealthy DLL injector** for **Windows 10 and 11** wi
 
 ✅ **EDR/AV/Sandbox Evasion:** Implements multiple checks to detect sandbox environments, VM detection, and EDR hooks.
 
-✅ **Direct Syscalls:** Bypass API hooks in `ntdll.dll`. (hardcoded SSN need to uses Hell's Gate & SysWhispers)
+✅ **Direct Syscalls:** Bypass API hooks in `ntdll.dll`. (hardcoded SSN. Improvement: use Hell's Gate & SysWhispers)
 
-✅ **Avoid calling GetModuleHandle:** Uses `PEB walk` to retrieve functions in modules.
+✅ **Avoid calling function from module:** Uses `PEB walk` to retrieve functions in modules without loading them.
 
 ✅ **Obfuscation:** NEW: Rather than plain string Base64 encoding, suspicious artifacts are obfuscated after the binary is build. Thanks to [4g3nt47's Obfuscator](https://github.com/4g3nt47/Obfuscator.git).
 
@@ -29,7 +32,17 @@ Requirements:
   - nasm
   - make
 ```
-Use **makefile** or compile it your ways (don't forget to use the obfuscator :) )
+Use **makefile** or compile it your ways (don't forget to use the obfuscator 😊 )
+
+The makefile will:
+```
+1 - Compile the dependencies
+2 - Compile the obfuscator
+3 - Compile the dllinjector into injector.exe
+4 - Modify the PE section
+5 - Run the obfuscator, this will generate obfsinjector.exe
+6 - Fix the checksum cause we messed with the PE :)
+```
 
 ### **2️⃣ Running the Injector**
 ```powershell
