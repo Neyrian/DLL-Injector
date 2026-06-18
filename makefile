@@ -6,6 +6,7 @@ STRIP = x86_64-w64-mingw32-strip
 
 # Define output binaries
 TARGET_EXE = injector.exe
+TARGET_OBFS_EXE = obfsinjector.exe
 TARGET_DLL = malDLL.dll
 OBFUSCATOR = obfuscator obfuscator.o binary_obfuscator.o
 
@@ -40,7 +41,7 @@ $(TARGET_EXE): $(C_OBJS) $(ASM_OBJ) obfuscator
 	$(CC) -o $(TARGET_EXE) $(C_OBJS) $(ASM_OBJ) $(LDFLAGS)
 	$(OBJCOPY) --rename-section .CRT=.data $(TARGET_EXE)
 	$(STRIP) --strip-debug --strip-unneeded $(TARGET_EXE)
-	./obfuscator $(TARGET_EXE) enc$(TARGET_EXE) 144
+	./obfuscator $(TARGET_EXE) $(TARGET_OBFS_EXE) 144
 
 # Build the malicious DLL
 $(TARGET_DLL): $(DLL_SRC)
@@ -59,4 +60,4 @@ obfuscator: obfuscator.o binary_obfuscator.o
 
 # Clean up generated files
 clean:
-	rm -f $(ASM_OBJ) $(C_OBJS) $(TARGET_EXE) $(TARGET_DLL) $(OBFUSCATOR)
+	rm -f $(ASM_OBJ) $(C_OBJS) $(TARGET_EXE) $(TARGET_DLL) $(OBFUSCATOR) $(TARGET_OBFS_EXE)
