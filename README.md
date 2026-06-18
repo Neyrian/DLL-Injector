@@ -11,7 +11,7 @@ This project implements a **stealthy DLL injector** for **Windows 10 and 11** wi
 
 ✅ **EDR/AV/Sandbox Evasion:** Implements multiple checks to detect sandbox environments, VM detection, and EDR hooks.
 
-✅ **Direct Syscalls:** Uses Hell's Gate & SysWhispers to bypass API hooks in `ntdll.dll`.
+✅ **Direct Syscalls:** Bypass API hooks in `ntdll.dll`. (hardcoded SSN need to uses Hell's Gate & SysWhispers)
 
 ✅ **Avoid calling GetModuleHandle:** Uses `PEB walk` to retrieve functions in modules.
 
@@ -102,7 +102,6 @@ injector.exe C:\path\to\dll
 
 ### **4️⃣ syscalls.asm - Direct Syscalls for Hell’s Gate & SysWhispers**
 - Implements **NtAllocateVirtualMemory, NtWriteVirtualMemory, NtProtectVirtualMemory** using direct syscalls.
-- Dynamically resolves syscall numbers at runtime to avoid static detection.
 
 ---
 
@@ -127,10 +126,8 @@ Feel free to **submit issues or pull requests** to improve the project.
 ## 📜 **References**
 - 🔗 **MITRE ATT&CK Framework**: [T1202 - Indirect Command Execution](https://attack.mitre.org/techniques/T1202/)  
 - 🔗 **AV & EDR Detection**: [Exe_Who GitHub](https://github.com/Nariod/exe_who)
-- 🔗 **Pikabot Campaign TM**: [Trend Micro: Pikabot Spam Wave](https://www.trendmicro.com/en_us/research/24/a/a-look-into-pikabot-spam-wave-campaign.html)
-- 🔗 **Pikabot Campaign Mitre**: [MITRE ATT&CK: Pikabot Campaign (C0037)](https://attack.mitre.org/campaigns/C0037/)
 
 ---
 
-🚀 **Happy Coding!**
+🚀 **Happy Hacking!**
 
