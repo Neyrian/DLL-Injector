@@ -1,0 +1,22 @@
+#include "binary_obfuscator.h"
+
+int main(int argc, char **argv){
+
+  if (argc < 4){
+    printf("[-] Usage: %s <infile> <outfile> <key>\n", argv[0]);
+    return 1;
+  }
+  FILE *src = fopen(argv[1], "rb");
+  if (!src){
+    printf("[-] Error opening input file!\n");
+  }
+  FILE *dest = fopen(argv[2], "wb");
+  if (!dest){
+    printf("[-] Error opening output file!\n");
+    return 1;
+  }
+  obfs_run(dest, src, atoi(argv[3]), 1);
+  fclose(src);
+  fclose(dest);
+  return 0;
+}
