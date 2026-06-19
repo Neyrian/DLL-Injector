@@ -22,6 +22,11 @@
  */
 char *obfs_encode(unsigned char key, char str[]);
 
+/**
+ * Tweak version of obfs_encode for decoding the payload header (encoded)
+ */
+void obfs_decode_binary(unsigned char key, unsigned char *data, size_t len);
+
 // Find the absolute offset of `target` that is `len` bytes long inside file `rfo`
 long obfs_find_offset(FILE *rfo, const void *target, size_t len);
 
