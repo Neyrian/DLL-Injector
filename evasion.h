@@ -43,23 +43,20 @@ typedef BOOL(WINAPI *pFindClose_t)(HANDLE); // FindClose in fileapi.h, loaded in
 typedef HANDLE(WINAPI *pFindFirstFileA_t)(LPCSTR, LPWIN32_FIND_DATAA); // FindFirstFileA in fileapi.h, loaded in kernel32.dll
 typedef BOOL(WINAPI *pQueryPerformance_t)(LARGE_INTEGER*); //for QueryPerformanceFrequency and QueryPerformanceCounter
 
-typedef NTSTATUS (WINAPI *PNtProtectVirtualMemory)(
-    HANDLE ProcessHandle,
-    PVOID *BaseAddress,
-    PSIZE_T NumberOfBytesToProtect,
-    ULONG NewAccessProtection,
-    PULONG OldAccessProtection
-);
-
 /*
-Headers of assembly functions for direct syscalls.
-See definitions in syscalls.asm.
+Headers of assembly functions for direct syscalls. See definitions in syscalls.asm.
 CustAVM: NtAllocateVirtualMemory
-CustWVM: NtWriteVirtualMemory
-CustPVM: NtProtectVirtualMemory
 */
 extern NTSTATUS CustAVM(HANDLE hProcess, PVOID *BaseAddress, ULONG ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect); 
+/*
+Headers of assembly functions for direct syscalls. See definitions in syscalls.asm.
+CustWVM: NtWriteVirtualMemory
+*/
 extern NTSTATUS CustWVM(HANDLE hProcess, PVOID BaseAddress, PVOID Buffer, SIZE_T BufferSize, PSIZE_T NumberOfBytesWritten);
+/*
+Headers of assembly functions for direct syscalls. See definitions in syscalls.asm.
+CustPVM: NtProtectVirtualMemory
+*/
 extern NTSTATUS CustPVM(HANDLE hProcess, PVOID *BaseAddress, PSIZE_T BufferSize, ULONG NewAccessProtection, PULONG OldAccessProtection);
 
 /**

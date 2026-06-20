@@ -17,6 +17,6 @@ CustWVM:
 
 CustPVM:
     mov r10, rcx
-    mov eax, 3Ah
+    mov rax, 0x50
     db 0x0F, 0x05   ; Encoded `syscall` instruction to trick a poorly written static analyzer
     ret   
