@@ -7,8 +7,13 @@ This project implements a **stealthy Payload injector** for **Windows 10 and 11*
 
 > The old dll injector is always disponible on the [dllInjector](https://github.com/Neyrian/DLL-Injector/tree/dllInjector) branch.
 
-- 0/69 on [VirusTotal](https://www.virustotal.com/gui/file/21a1b9a16ac78b0b898dac1866b4871b0bd26d6287a731b913711db3c78e555e)
-- Not detected on [Hybrid Analysis Sandbox](https://hybrid-analysis.com/sample/21a1b9a16ac78b0b898dac1866b4871b0bd26d6287a731b913711db3c78e555e)
+I am still working on the stealh:
+- Using a simple msfvenom's msgbox payload:
+  - 5/69 on [VirusTotal](https://www.virustotal.com/gui/file/53cb4bf5ab8d90710bfd0e7416a17f15c31e862ab8aeb6c3bf50b13f462a75ea?nocache=1)
+  - Suspicious on [Hybrid Analysis Sandbox](https://hybrid-analysis.com/sample/53cb4bf5ab8d90710bfd0e7416a17f15c31e862ab8aeb6c3bf50b13f462a75ea)
+- Using a simple msfvenom's windows/x64/meterpreter/reverse_tcp payload
+  - 4/70 on [VirusTotal](https://www.virustotal.com/gui/file/9f2b5b0ff6aef85fd01223d850a16a588befb045f6ad9e732a85f81770286fd6?nocache=1)
+  - no specific threat on [Hybrid Analysis Sandbox](https://hybrid-analysis.com/sample/9f2b5b0ff6aef85fd01223d850a16a588befb045f6ad9e732a85f81770286fd6)
 
 ---
 
