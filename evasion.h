@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <stdbool.h>
 
-#define DEBUG true
+#define DEBUG false
 #define ARRAY_SIZE 1000
 extern unsigned char DECKEY;
 
