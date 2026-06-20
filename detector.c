@@ -133,7 +133,7 @@ bool DetSBF()
 bool DetF()
 {
     myDebug(DEBUG_INFO, "Checking for filename hash matching...");
-    FARPROC pGetModuleFileNameA = (FARPROC)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]GetModuleFileNameA"));
+    pGetModuleFileNameA_t pGetModuleFileNameA = (pGetModuleFileNameA_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]GetModuleFileNameA"));
     pCreateFileA_t pCreateFileA = (pCreateFileA_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CreateFileA"));
     pGetFileSize_t pGetFileSize = (pGetFileSize_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]GetFileSize"));
     pReadFile_t pReadFile = (pReadFile_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]ReadFile"));

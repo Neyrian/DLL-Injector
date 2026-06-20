@@ -1,16 +1,27 @@
-# 🚀 Advanced DLL Injector with EDR/AV/Sandbox Evasion
+# 🚀 Advanced Payload Injector with EDR/AV/Sandbox Evasion
 
 ## 🔥 Overview
-This project implements a **stealthy DLL injector** for **Windows 10 and 11** with advanced evasion techniques. It includes mechanisms to **bypass EDR, AV, and sandbox detections** while using direct syscalls, manual API resolution, PEB walk, and obfuscation to reduce detection rates. The injector creates a suspended process, injects a DLL, and executes its entry point in a stealthy manner.
+This project implements a **stealthy Payload injector** for **Windows 10 and 11** with advanced evasion techniques. It includes mechanisms to **bypass EDR, AV, and sandbox detections** while using direct syscalls, manual API resolution, PEB walk, and obfuscation to reduce detection rates. The injector creates a suspended process, injects an embedded payload (built with msfvenom), and executes it in a stealthy manner.
 
-- 0/69 on [VirusTotal](https://www.virustotal.com/gui/file/21a1b9a16ac78b0b898dac1866b4871b0bd26d6287a731b913711db3c78e555e)
-- Not detected on [Hybrid Analysis Sandbox](https://hybrid-analysis.com/sample/21a1b9a16ac78b0b898dac1866b4871b0bd26d6287a731b913711db3c78e555e)
+> NEW: Rather than loading and executing a DLL already present on disk, the loader now has its own obfuscated payload 👌
+
+> The old dll injector is always disponible on the [dllInjector](https://github.com/Neyrian/DLL-Injector/tree/dllInjector) branch.
+
+I am still working on the stealh:
+- Using a simple msfvenom's msgbox payload:
+  - 5/69 on [VirusTotal](https://www.virustotal.com/gui/file/53cb4bf5ab8d90710bfd0e7416a17f15c31e862ab8aeb6c3bf50b13f462a75ea?nocache=1)
+  - Suspicious on [Hybrid Analysis Sandbox](https://hybrid-analysis.com/sample/53cb4bf5ab8d90710bfd0e7416a17f15c31e862ab8aeb6c3bf50b13f462a75ea)
+- Using a simple msfvenom's windows/x64/meterpreter/reverse_tcp payload
+  - 4/70 on [VirusTotal](https://www.virustotal.com/gui/file/9f2b5b0ff6aef85fd01223d850a16a588befb045f6ad9e732a85f81770286fd6?nocache=1)
+  - no specific threat on [Hybrid Analysis Sandbox](https://hybrid-analysis.com/sample/9f2b5b0ff6aef85fd01223d850a16a588befb045f6ad9e732a85f81770286fd6)
 
 ---
 
 ## 📌 **Features**
 
-✅ **Stealthy Injection:** Creates a suspended process and injects a DLL without using common Windows API calls.
+✅ **Stealthy Injection:** Creates a suspended process and injects a payload without using common Windows API calls.
+
+✅ **Embeded payload:** Upon compilation, the payload is dynamically embedded into the binary.
 
 ✅ **EDR/AV/Sandbox Evasion:** Implements multiple checks to detect sandbox environments, VM detection, and EDR hooks.
 
@@ -30,6 +41,7 @@ This project implements a **stealthy DLL injector** for **Windows 10 and 11** wi
 Requirements:
   - gcc-mingw-w64-x86-64-win32
   - nasm
+  - gcc
   - make
 ```
 Use **makefile** or compile it your ways (don't forget to use the obfuscator 😊 )
@@ -38,19 +50,20 @@ The makefile will:
 ```
 1 - Compile the dependencies
 2 - Compile the obfuscator
-3 - Compile the dllinjector into injector.exe
-4 - Modify the PE section
-5 - Run the obfuscator, this will generate obfsinjector.exe
-6 - Fix the checksum cause we messed with the PE :)
+3 - Build the payload (you can modify it directly from the makefile)
+4 - Run the payloadObfuscator on the generated payload.h
+5 - Compile the payloadinjector.c into injector.exe
+6 - Modify the PE section
+7 - Run the obfuscator, this will generate obfsinjector.exe
+8 - Fix the checksum cause we messed with the PE :)
 ```
 
 ### **2️⃣ Running the Injector**
 ```powershell
-obfsinjector.exe C:\path\to\dll
+obfsinjector.exe
 ```
 > **Note**: 
 > - Use the obfsinjector executable. Otherwise, the build binary (injector.exe) won't work since the strings won't be obfuscated.
-> - Replace `C:\path\to\dll` with the actual path of your DLL (you can use the dll in this repo for testing)
 > - It's recommanded to disable debugging (set to ```false``` the ```DEBUG``` variable in ```evasion.h```. If you do, the program may appear unresponsive. It's due to various waiting time. Just wait 15 sec 😊 )
 ---
 
@@ -78,25 +91,26 @@ obfsinjector.exe C:\path\to\dll
 ## 📝 **Project Structure**
 ```
 📂 Project Folder
-│── dllinjector.c         # Main DLL injector
+│── payloadinjector.c     # Main Payload injector
 │── detector.c            # EDR/AV/Sandbox detection
 │── evasion.c             # Evasion functions (syscalls, b64decode...) and decoy
-|── malDLL.c              # Source DLL that can be used for testing
-│── binary_obfuscator.c   # Contains the obfuscator's functions
-│── obfuscator.c          # Main program used to obfuscate the build binary
 │── detector.h            # Header file for detection functions
 │── evasion.h             # Header file for evasion functions and decoy
-│── binary_obfuscator.h   # Contains the obfuscator's definition
 │── syscalls.asm          # Direct Syscalls Functions
 |── makefile              # easy to compile
 │── README.md             # This documentation
+│── 📂 obfs_obfuscator        # Contains the obfuscators c files
+    │── obfuscator.c          # Main program used to obfuscate the build binary
+    │── binary_obfuscator.c   # Contains the obfuscator's functions
+    │── binary_obfuscator.h   # Contains the obfuscator's definition
+    │── payloadObfuscator.c   # Contains the obfuscator's payoad functions
+
 ```
 ---
 ## Modules Breakdown
-### **Main DLL Injector: dllinjector.c**
-- Creates a **suspended** process (`SearchProtocolHost.exe` or `explorer.exe`).
-- Uses **direct syscalls** to allocate memory and write the DLL path.
-- Executes the entry point of the injected DLL stealthily.
+### **Main Payload Injector: payloadinjector.c**
+- Creates a **suspended** process (`SearchProtocolHost.exe`).
+- Uses **direct syscalls** to allocate memory, write the payload and executes the payload stealthily.
 
 ### **EDR/AV/Sandbox Detection: detector.c & detector.h**
 - Detects **common AV/EDR drivers** in `C:\Windows\System32\drivers`.
@@ -105,7 +119,7 @@ obfsinjector.exe C:\path\to\dll
 - Implements **cursor movement & sleep patching** to evade automated sandboxes.
 
 ### **Evasion Functions & Decoy Execution: evasion.c & evasion.h**
-- Implements **Base64 encoding & decoding** to hide DLL and function names.
+- Implements **Base64 encoding & decoding** to hide payload and function names.
 - **Legitimate Decoy Execution**: The injector executes a CPU-intensive function to simulate legitimate software behavior.
 - Use PEB walk to retrieve function in modules without API.
 

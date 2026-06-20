@@ -25,6 +25,19 @@ char *obfs_encode(unsigned char key, char str[]){
   return str;
 }
 
+void obfs_decode_binary(unsigned char key, unsigned char *data, size_t len) {
+    unsigned char curr_key;
+    for (size_t i = 0; i < len; i++) {
+        curr_key = key * (i + 1);
+        while (curr_key == 0 || curr_key == 10 || (curr_key >= 32 && curr_key <= 126)) {
+            curr_key += 47;
+        }
+        // XORing the ciphertext with the key stream restores the plaintext
+        data[i] = data[i] ^ curr_key;
+        key = curr_key;
+    }
+}
+
 long obfs_find_offset(FILE *rfo, const void *target, size_t len){
 
   void *buff = malloc(len);

