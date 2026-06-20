@@ -5,6 +5,8 @@ This project implements a **stealthy Payload injector** for **Windows 10 and 11*
 
 > NEW: Rather than loading and executing a DLL already present on disk, the loader now has its own obfuscated payload 👌
 
+> The old dll injector is always disponible on the [dllInjector](https://github.com/Neyrian/DLL-Injector/tree/dllInjector) branch.
+
 - 0/69 on [VirusTotal](https://www.virustotal.com/gui/file/21a1b9a16ac78b0b898dac1866b4871b0bd26d6287a731b913711db3c78e555e)
 - Not detected on [Hybrid Analysis Sandbox](https://hybrid-analysis.com/sample/21a1b9a16ac78b0b898dac1866b4871b0bd26d6287a731b913711db3c78e555e)
 
