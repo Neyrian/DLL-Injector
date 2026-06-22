@@ -2,6 +2,7 @@ section .text
 global CustAVM
 global CustWVM
 global CustPVM
+global CustQDF
 
 CustAVM:
     mov r10, rcx
@@ -20,3 +21,9 @@ CustPVM:
     mov rax, 0x50
     db 0x0F, 0x05   ; Encoded `syscall` instruction to trick a poorly written static analyzer
     ret   
+
+CustQDF:
+    mov r10, rcx
+    mov rax, 0x35
+    db 0x0F, 0x05   ; Encoded `syscall` instruction to trick a poorly written static analyzer
+    ret

