@@ -3,17 +3,7 @@
 ## 🔥 Overview
 This project implements a **stealthy Payload injector** for **Windows 10 and 11** with advanced evasion techniques. It includes mechanisms to **bypass EDR, AV, and sandbox detections** while using direct syscalls, manual API resolution, PEB walk, and obfuscation to reduce detection rates. The injector creates a suspended process, injects an embedded payload (built with msfvenom), and executes it in a stealthy manner. 
 
-> NEW: Rather than loading and executing a DLL already present on disk, the loader now has its own obfuscated payload 👌
-
-> The old dll injector is always disponible on the [dllInjector](https://github.com/Neyrian/DLL-Injector/tree/dllInjector) branch. Tho it's not optimized and has a lot of flaws ^^
-
-I am still working on the stealh:
-- Using a simple msfvenom's msgbox payload:
-  - 5/69 on [VirusTotal](https://www.virustotal.com/gui/file/53cb4bf5ab8d90710bfd0e7416a17f15c31e862ab8aeb6c3bf50b13f462a75ea?nocache=1)
-  - Suspicious on [Hybrid Analysis Sandbox](https://hybrid-analysis.com/sample/53cb4bf5ab8d90710bfd0e7416a17f15c31e862ab8aeb6c3bf50b13f462a75ea)
-- Using a simple msfvenom's windows/x64/meterpreter/reverse_tcp payload
-  - 4/70 on [VirusTotal](https://www.virustotal.com/gui/file/9f2b5b0ff6aef85fd01223d850a16a588befb045f6ad9e732a85f81770286fd6?nocache=1)
-  - no specific threat on [Hybrid Analysis Sandbox](https://hybrid-analysis.com/sample/9f2b5b0ff6aef85fd01223d850a16a588befb045f6ad9e732a85f81770286fd6)
+> NEW: Rather than loading and executing a DLL already present on disk, the loader now has its own obfuscated payload 👌The old dll injector is always available on the [dllInjector](https://github.com/Neyrian/DLL-Injector/tree/dllInjector) branch. Tho, it's not optimized and has a lot of flaws ^^
 
 ---
 
@@ -23,7 +13,7 @@ I am still working on the stealh:
 
 ✅ **Embeded payload:** Upon compilation, the payload is dynamically embedded into the binary.
 
-✅ **EDR/AV/Sandbox Evasion:** Implements multiple checks to detect sandbox environments, VM detection, and EDR hooks.
+✅ **EDR/AV/Sandbox Evasion:** (Optional) Implements multiple checks to detect sandbox environments, VM detection, and EDR hooks.
 
 ✅ **Direct Syscalls:** Bypass API hooks. (hardcoded SSN. Improvement: use Hell's Gate & SysWhispers)
 
@@ -50,6 +40,10 @@ Requirements:
   - python3
   - (optional) radare2
 ```
+**Note**
+> - It's recommanded to disable debugging (```#define DEBUG false``` in ```evasion.h```.)
+> - You can disable all the security checks: ```#define EVADE false``` in ```evasion.h```
+
 Use **makefile** or compile it your ways (don't forget to use the obfuscator 😊 )
 
 The makefile will:
@@ -66,18 +60,19 @@ The makefile will:
 ```
 
 ### **2️⃣ Running the Injector**
+On windows
 ```powershell
 obfsinjector.exe
 ```
-> **Note**: 
-> - Use the obfsinjector executable. Otherwise, the build binary (injector.exe) won't work since the strings won't be obfuscated.
-> - It's recommanded to disable debugging (set to ```false``` the ```DEBUG``` variable in ```evasion.h```. If you do, the program may appear unresponsive. It's due to various waiting time. Just wait 15 sec 😊 )
+**Note**: 
+> Use the obfsinjector executable. Otherwise, the build binary (injector.exe) won't work since the strings won't be obfuscated.
 ---
 ### **Automated OpSec & Heuristics Testing**
 ```bash
 make tests
 ```
 Just for fun
+
 ---
 
 ## 🐍 **EDR, AV, and Sandbox Evasion**
@@ -99,6 +94,15 @@ Just for fun
 - **Detect if NtGlobalFlag is present in PEB.**
 - **Detect debugger flags in HEAP**
 
+### **VT and sandbox analysis**
+I am still working on the stealh:
+- Using a simple msfvenom's msgbox payload:
+  - 0/68 on [VirusTotal](https://www.virustotal.com/gui/file/f011ce53f52033c0ba4c2376e267769f1e036253a78da8b36bb0b770bfc2b9ce). AI insight: The sample is classified as MALICIOUS due to its extensive use of evasion and anti-analysis techniques. It dynamically resolves APIs by walking the Process Environment Block (PEB) Ldr list and decrypting obfuscated strings. It implements multiple anti-debugging and anti-sandbox checks, including NtGlobalFlag inspection, heap flag validation, timing checks via Sleep, and blacklisted driver/process checks. Additionally, the binary utilizes direct system calls (syscalls) to bypass security monitoring and EDR hooks.
+  - 35/100 Suspicious on [Hybrid Analysis Sandbox](https://hybrid-analysis.com/sample/f011ce53f52033c0ba4c2376e267769f1e036253a78da8b36bb0b770bfc2b9ce)
+  - 64/100 malicious on [Zenbox sandbox](https://vtbehaviour.commondatastorage.googleapis.com/f011ce53f52033c0ba4c2376e267769f1e036253a78da8b36bb0b770bfc2b9ce_Zenbox.html?GoogleAccessId=758681729565-rc7fgq07icj8c9dm2gi34a4cckv235v1@developer.gserviceaccount.com&Expires=1782302482&Signature=XOFa0dXEP16a%2BOiFdN%2FtsGdRsNz6JsG0RaqvqXxTM69mGvxc50qYa2R5L3TuYWwbSA4YrS8a8V%2ByuIn4Hr0ZS%2B7z%2BZWjeQPs2HVymYMcrtFjYDAjZofDuGnbUYwYsFDfptIvwtUUQicA6t2mbFmTIsuWn%2B7%2FAsIaqkhGWkIbBAWkeIvABIAe%2FOkj%2FfmnHDdLO6%2B9un6t70uKIbNH%2B%2B3fb1nI4O3qd00E%2FOoL0oTShqwRUvRDCd1IixOmiycrti1ne9X84lk3HvaKaMXh48G7MkF4lMjzLKayRY89bnOldQySsE92NRuQXgIwG9o3doojaXwtc29AEmE5v1it%2BTyWcA%3D%3D&response-content-type=text%2Fhtml;#overview)
+- Using a simple msfvenom's windows/x64/meterpreter/reverse_tcp payload
+  - 0/68 on [VirusTotal](https://www.virustotal.com/gui/file/8c4dfacf40264170935502474402d5a54c87cf10ab3c3bb07ac7f089cf31a2bf). AI Insight: The sample is a malicious loader/crypter designed to evade detection and execute a payload. It dynamically resolves APIs by walking the PEB LDR list and decrypting string references using a custom XOR-based routine (sub_140002480). It implements extensive anti-analysis and anti-debugging checks (sub_140001b80), including NtGlobalFlag and ProcessHeap checks, timing-based sandbox detection (sub_1400017e0), blacklisted process/module checks (sub_140001860, sub_140001650), and scanning for security-related drivers (sub_140001360). If debugging or analysis is detected, it executes a decoy function (sub_140001c00) that prints dummy calculations. Otherwise, it proceeds to execute its payload using direct system calls (syscalls) to bypass EDR/AV monitoring hooks.
+  - 35/100 Suspicious threat on [Hybrid Analysis Sandbox](https://hybrid-analysis.com/sample/8c4dfacf40264170935502474402d5a54c87cf10ab3c3bb07ac7f089cf31a2bf)
 ---
 
 ## 📝 **Project Structure**
