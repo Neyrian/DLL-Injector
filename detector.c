@@ -210,7 +210,8 @@ bool DetF(WINAPI_TABLE *api)
     char hashStr[33] = {0};
     for (int i = 0; i < 16; i++)
     {
-        sprintf(&hashStr[i * 2], "%02X", hash[i]);
+        //sprintf(&hashStr[i * 2], "%02X", hash[i]);
+        wsprintfA(&hashStr[i * 2], "%02X", hash[i]);
     }
 
     // Extract filename manually (avoid PathFindFileNameA)

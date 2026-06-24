@@ -7,32 +7,54 @@ Disable debug for stealthier execution in evasion.h
 */
 #if DEBUG
 void myDebug(DEBUG_TYPE type, const char *format, ...) {
-    if (!DEBUG) return;  // Disable debugging if DEBUG is false
+    if (!DEBUG) return;
 
     const char *prefix;
     switch (type) {
         case DEBUG_ERROR:
-            prefix = "[ERROR]";
+            prefix = "[ERROR] ";
             break;
         case DEBUG_INFO:
-            prefix = "[INFO]";
+            prefix = "[INFO] ";
             break;
         case DEBUG_SUCCESS:
-            prefix = "[SUCCESS]";
+            prefix = "[SUCCESS] ";
             break;
         default:
-            prefix = "[INFO]";
+            prefix = "[INFO] ";
             break;
     }
 
-    printf("%s ", prefix);
+    // 1. Allocate a buffer for the final message (1024 bytes is the max for wvsprintfA)
+    char buffer[1024];
+    
+    // 2. Copy the prefix into the buffer
+    int prefixLen = lstrlenA(prefix);
+    lstrcpyA(buffer, prefix);
 
+    // 3. Format the variadic arguments directly after the prefix
     va_list args;
     va_start(args, format);
-    vprintf(format, args);
+    // wvsprintfA returns the number of characters written
+    int msgLen = wvsprintfA(buffer + prefixLen, format, args);
     va_end(args);
 
-    printf("\n");  // Ensure new line for readability
+    // 4. Calculate total length and append the newline manually
+    int totalLen = prefixLen + msgLen;
+    if (totalLen < 1022) { // Protect against buffer overflow
+        buffer[totalLen] = '\n';
+        buffer[totalLen + 1] = '\0';
+        totalLen++;
+    }
+
+    // 5. Get the handle to the console window
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    
+    // 6. Write directly to the console
+    if (hConsole != INVALID_HANDLE_VALUE && hConsole != NULL) {
+        DWORD bytesWritten;
+        WriteConsoleA(hConsole, buffer, totalLen, &bytesWritten, NULL);
+    }
 }
 #endif
 
@@ -95,10 +117,18 @@ void SortNumbers()
     {
         sum += numbers[i];
     }
-    float avg = (float)sum / ARRAY_SIZE;
+    size_t avg = (size_t)sum / ARRAY_SIZE;
 
     // Print final average
-    printf("Processed %d numbers. Average value: %.2f", ARRAY_SIZE, avg);
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    
+    // 6. Write directly to the console
+    if (hConsole != INVALID_HANDLE_VALUE && hConsole != NULL) {
+        char buffer[256];
+        int len = wsprintfA(buffer, "Processed %d numbers. Average rounded value: %d\n", ARRAY_SIZE, (int)avg);
+        DWORD bytesWritten;
+        WriteConsoleA(GetStdHandle(STD_OUTPUT_HANDLE), buffer, len, &bytesWritten, NULL);
+    }
 }
 
 pMod GetMod(LPCSTR mod, LPCSTR fn)

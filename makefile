@@ -30,8 +30,8 @@ C_OBFS_HDRS = $(wildcard obfs_src/*.h)
 C_OBFS_OBJS = $(C_OBFS_SRCS:.c=.o)
 
 # Compilation flags
-CFLAGS = -Wall -Wno-array-bounds -O2 
-LDFLAGS = -O2 -flto -ffunction-sections -fdata-sections -lshlwapi -Wl,--section-alignment,4096 -Wl,--gc-sections -Wl,--strip-debug -Wl,--image-base,0x140000000
+CFLAGS = -Wall -Wno-array-bounds -O2
+LDFLAGS = -O2 -flto -ffunction-sections -fdata-sections -lshlwapi -Wl,--section-alignment,4096 -Wl,--gc-sections -Wl,--strip-debug -Wl,--image-base,0x140000000 -nostartfiles -e injector
 CFLAGS_NATIVE = -Os -Wall
 
 # Default target

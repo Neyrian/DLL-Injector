@@ -193,7 +193,7 @@ BOOL _init_win_api(WINAPI_TABLE *api) {
 }
 
 // Entry Function
-int main(int argc, char *argv[])
+int injector(int argc, char *argv[])
 {
     WINAPI_TABLE api;
     if (!_init_win_api(&api)) {
