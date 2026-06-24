@@ -4,7 +4,8 @@
 #include <windows.h>
 #include <stdbool.h>
 
-#define DEBUG false
+#define DEBUG false // if true, then print stuff. Noisy but you see what's goin on
+#define EVADE true // if true, then performs EDR, SANDBOX, and other detection.
 #define ARRAY_SIZE 1000
 extern unsigned char DECKEY;
 

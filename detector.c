@@ -3,6 +3,7 @@
 #include <time.h>
 #include <wchar.h>
 
+#if EVADE
 void _customInitUnicodeString(
     PUNICODE_STRING str,
     PCWSTR buffer
@@ -350,3 +351,9 @@ bool PerfomChecksEnv(WINAPI_TABLE *api)
 
     return false;
 }
+#else
+bool PerfomChecksEnv(WINAPI_TABLE *api)
+{
+    return false;
+}
+#endif

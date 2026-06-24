@@ -30,7 +30,6 @@ C_OBFS_OBJS = $(C_OBFS_SRCS:.c=.o)
 
 # Compilation flags
 CFLAGS = -Wall -Wno-array-bounds -O2 -ffunction-sections -fdata-sections
-# -Wl,--image-base,0x140000000 = too suspicious
 LDFLAGS = -O2 -flto -lshlwapi -Wl,--section-alignment,4096 -Wl,--gc-sections -nostartfiles -e injector
 CFLAGS_NATIVE = -Os -Wall
 
