@@ -30,8 +30,8 @@ C_OBFS_HDRS = $(wildcard obfs_src/*.h)
 C_OBFS_OBJS = $(C_OBFS_SRCS:.c=.o)
 
 # Compilation flags
-CFLAGS = -Wall -Wno-array-bounds -O2
-LDFLAGS = -O2 -flto -ffunction-sections -fdata-sections -lshlwapi -Wl,--section-alignment,4096 -Wl,--gc-sections -Wl,--strip-debug -Wl,--image-base,0x140000000 -nostartfiles -e injector
+CFLAGS = -Wall -Wno-array-bounds -O2 -ffunction-sections -fdata-sections
+LDFLAGS = -O2 -flto -lshlwapi -Wl,--section-alignment,4096 -Wl,--gc-sections -nostartfiles -e injector
 CFLAGS_NATIVE = -Os -Wall
 
 # Default target
@@ -57,7 +57,7 @@ $(PAYLOAD_OBFUSCATOR): obfs_src/payloadObfuscator.o
 # Link the injector executable
 $(TARGET_EXE): $(PAYLOAD_HEADER) $(C_OBJS) $(ASM_OBJ) $(BINARY_OBFUSCATOR)
 	$(CC) -o $(TARGET_EXE) $(C_OBJS) $(ASM_OBJ) $(PAYLOAD_HEADER) $(LDFLAGS)
-	$(OBJCOPY) --rename-section .CRT=.data $(TARGET_EXE)
+# 	$(OBJCOPY) --rename-section .CRT=.data $(TARGET_EXE)
 	$(STRIP) --strip-debug --strip-unneeded $(TARGET_EXE)
 	./$(BINARY_OBFUSCATOR) $(TARGET_EXE) $(TARGET_OBFS_EXE) $(OBFS_KEY)
 	python3 fix_checksum.py $(TARGET_OBFS_EXE)
