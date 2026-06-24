@@ -2,7 +2,6 @@
 CC = x86_64-w64-mingw32-gcc
 CC_NATIVE = gcc
 ASM = nasm
-OBJCOPY = x86_64-w64-mingw32-objcopy
 STRIP = x86_64-w64-mingw32-strip
 
 # Define output binaries
@@ -30,8 +29,8 @@ C_OBFS_HDRS = $(wildcard obfs_src/*.h)
 C_OBFS_OBJS = $(C_OBFS_SRCS:.c=.o)
 
 # Compilation flags
-CFLAGS = -Wall -Wno-array-bounds -O2 
-LDFLAGS = -O2 -flto -ffunction-sections -fdata-sections -lshlwapi -Wl,--section-alignment,4096 -Wl,--gc-sections -Wl,--strip-debug -Wl,--image-base,0x140000000
+CFLAGS = -Wall -Wno-array-bounds -O2 -ffunction-sections -fdata-sections
+LDFLAGS = -O2 -flto -lshlwapi -Wl,--section-alignment,4096 -Wl,--gc-sections -nostartfiles -e injector
 CFLAGS_NATIVE = -Os -Wall
 
 # Default target
@@ -57,12 +56,12 @@ $(PAYLOAD_OBFUSCATOR): obfs_src/payloadObfuscator.o
 # Link the injector executable
 $(TARGET_EXE): $(PAYLOAD_HEADER) $(C_OBJS) $(ASM_OBJ) $(BINARY_OBFUSCATOR)
 	$(CC) -o $(TARGET_EXE) $(C_OBJS) $(ASM_OBJ) $(PAYLOAD_HEADER) $(LDFLAGS)
-	$(OBJCOPY) --rename-section .CRT=.data $(TARGET_EXE)
 	$(STRIP) --strip-debug --strip-unneeded $(TARGET_EXE)
 	./$(BINARY_OBFUSCATOR) $(TARGET_EXE) $(TARGET_OBFS_EXE) $(OBFS_KEY)
 	python3 fix_checksum.py $(TARGET_OBFS_EXE)
-# cleaning intermediary files
-	rm -f $(ASM_OBJ) $(C_OBJS) $(PAYLOAD_OBFUSCATOR) $(TARGET_EXE) $(PAYLOAD_DLL) $(BINARY_OBFUSCATOR) $(C_OBFS_OBJS)
+
+tests: $(TARGET_EXE)
+	python3 tests/opsec_analyzer.py $(TARGET_OBFS_EXE)
 	
 $(PAYLOAD_HEADER): $(PAYLOAD_DLL) $(PAYLOAD_OBFUSCATOR)
 	./$(PAYLOAD_OBFUSCATOR) $(PAYLOAD_DLL) $(OBFS_KEY)
