@@ -128,10 +128,10 @@ bool DetSl(WINAPI_TABLE *api)
     return false;
 }
 
-// Sandbox Detection files
-bool DetSBF(WINAPI_TABLE *api)
+// Virtual Machine Detection files
+bool DetVM(WINAPI_TABLE *api)
 {
-    myDebug(DEBUG_INFO, "Checking for sandbox files...");
+    myDebug(DEBUG_INFO, "Checking for virtual machine files...");
 
     char *encodedPaths[] = {
         "[OBFS_ENC]C:\\Windows\\System32\\drivers\\Vmmouse.sys",
@@ -161,14 +161,14 @@ bool DetSBF(WINAPI_TABLE *api)
 
         if (api->pPathFileExistsA(decodedPath))
         {
-            myDebug(DEBUG_INFO, "Sandbox file detected!");
+            myDebug(DEBUG_INFO, "virtual machine file detected!");
             free(decodedPath);
             return true;
         }
 
         free(decodedPath);
     }
-    myDebug(DEBUG_SUCCESS, "No for sandbox files detected :)");
+    myDebug(DEBUG_SUCCESS, "No for virtual machine files detected :)");
     return false;
 }
 
@@ -245,7 +245,7 @@ bool DetF(WINAPI_TABLE *api)
     return false;
 }
 
-// Detect SandBox DLLs
+// Detect SandBox DLLs and checks if some real dll exists
 bool DetSBD(WINAPI_TABLE *api)
 {
     myDebug(DEBUG_INFO, "Checking for dll...");
@@ -337,7 +337,7 @@ bool PerfomChecksEnv(WINAPI_TABLE *api)
     if (DetF(api))
         return true; // avoiding further checks
 
-    if (DetSBF(api))
+    if (DetVM(api))
         return true; // avoiding further checks
 
     if (DetS(api))
