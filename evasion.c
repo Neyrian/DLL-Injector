@@ -1,5 +1,4 @@
 #include "evasion.h"
-#include <stdio.h>
 
 /*
 Print debug
