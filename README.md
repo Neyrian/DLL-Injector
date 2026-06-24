@@ -66,6 +66,10 @@ obfsinjector.exe
 ```
 **Note**: 
 > Use the obfsinjector executable. Otherwise, the build binary (injector.exe) won't work since the strings won't be obfuscated.
+
+Example of msfvenom reverse shell exploitation on Windows Server 2025 Datacenter 24H2 26100.32995:
+![proof](tests/proof.png)
+
 ---
 ### **Automated OpSec & Heuristics Testing**
 ```bash
