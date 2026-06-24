@@ -1,6 +1,5 @@
 #include "detector.h"
 #include "evasion.h"
-#include <stdio.h>
 #include <time.h>
 #include <wchar.h>
 
